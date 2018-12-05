@@ -22,7 +22,7 @@ int main() {
 
 	// Put all instructions into a list
 	while (inputfile >> instruction) {
-		std::cout << instruction << std::endl;
+		//std::cout << instruction << std::endl;
 		instrList.push_back(instruction);
 	}
 
@@ -65,7 +65,7 @@ int main() {
 		// check if pos > instrList.size()
 		if (pos >= instrList.size()) {
 			pos = 0;
-			std::cout << "Reached Instruction End" << std::endl;
+			//std::cout << "Reached Instruction End" << std::endl;
 		}
 
 	}

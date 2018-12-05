@@ -63,10 +63,14 @@ int main()
 	std::vector<std::vector<int>> patchMatrix(maxX, std::vector<int>(maxY));
 	
 	// Iterate through list and fill up patches in patchMatrix
+	int alternateClaimedMultiple = 0;
 	for (std::list<Patch>::iterator it = patches.begin(); it != patches.end(); ++it) {
 		for (int x = it->xCoord; x < it->xCoord + it->xWidth; ++x) {
 			for (int y = it->yCoord; y < it->yCoord + it->yWidth; ++y) {
 				patchMatrix[x][y]++;
+				if (patchMatrix[x][y] == 2) {
+					alternateClaimedMultiple++;
+				}
 			}
 		}
 	}
@@ -81,7 +85,8 @@ int main()
 		}
 	}
 
-	std::cout << "Day3P1: There are " << claimedMultiple << " square inches which are claimed at least double" << std::endl;
+	std::cout << "Day3P1: There are " << claimedMultiple << " square inches which are claimed at least double"
+		<< std::endl << "\talternativ method got me: " << alternateClaimedMultiple << std::endl;
 
 	/******************************/
 	/*         PART TWO           */

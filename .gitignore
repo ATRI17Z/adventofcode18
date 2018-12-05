@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# Folders
+packages
+x64
+Debug
+DayliInput
+*.sln
+*.vcxproj
+*.filters
+*.user
