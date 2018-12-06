@@ -41,3 +41,5 @@ DayliInput
 *.vcxproj
 *.filters
 *.user
+/Day6/input_Day6.txt
+/Day6/input_Day6_test.txt
