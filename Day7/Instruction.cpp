@@ -7,14 +7,16 @@ Instruction::Instruction(std::string instructionKey, std::string lockKey) {
 	instruction = instructionKey;
 	// store first lock key
 	addLock(lockKey);
-	processTime = 60+instructionKey[0] - 64;
+	processTime = 60 + instructionKey[0] - 64;
+	//processTime = instructionKey[0] - 64; // for testData
 }
 
 Instruction::Instruction(std::string instructionKey) {
 	// Store the instruction Key: this can't be changed anymore
 	instruction = instructionKey;
 	lockList = "";
-	processTime = 60+instructionKey[0] - 64;
+	processTime = 60 + instructionKey[0] - 64;
+	//processTime = instructionKey[0] - 64; // for testData
 }
 
 Instruction::~Instruction() {
@@ -22,7 +24,7 @@ Instruction::~Instruction() {
 }
 
 std::string Instruction::lockedWith(){
-	return std::string();
+	return lockList;
 }
 
 std::string Instruction::getInstruction()

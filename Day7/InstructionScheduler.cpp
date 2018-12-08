@@ -12,7 +12,7 @@ InstructionScheduler::~InstructionScheduler()
 }
 
 void InstructionScheduler::addInstruction(std::string a, std::string b) {
-	std::cout << "Adding Instruction " << b << " which is locked by " << a << std::endl;
+	//std::cout << "Adding Instruction " << b << " which is locked by " << a;
 	// check if <b> exists,
 	bool lockAisInstr = false;
 	bool instrBexists = false;
@@ -21,7 +21,6 @@ void InstructionScheduler::addInstruction(std::string a, std::string b) {
 		// compare each entry of the unscheduled instruction set to instruction <b>
 		if (it->isInstruction(b)) {
 			// <b> exists, add lockKey <a> to <b>
-			//std::cout << "DEBUG: adding to existing " << b << " a new lock key: " << a << std::endl;
 			it->addLock(a);
 			instrBexists = true;
 		}else if (it->isInstruction(a)) {
@@ -33,13 +32,15 @@ void InstructionScheduler::addInstruction(std::string a, std::string b) {
 		// <b> does not exist, create <b> and lock <a> to it
 		Instruction ins = Instruction(b, a);
 		// add it du unscheduled list
-		//std::cout << "DEBUG: adding " << b << " as new Instruction with lock key " << a << std::endl;
+		//std::cout << " and has a ProcTime " << ins.getProcessTime();
 		unscheduledInstructions.push_back(ins);
 	}
 	if (!lockAisInstr) {
 		Instruction lck = Instruction(a);
+		//std::cout << std::endl << "Adding Instruction " << a << " unlocked and has a ProcTime " << lck.getProcessTime();
 		unscheduledInstructions.push_back(lck);
 	}
+	//std::cout << std::endl;
 	
 	return;
 }
@@ -50,7 +51,7 @@ void InstructionScheduler::getSchedule() {
 	// Backup unscheduled Instructions if backup empty
 	if (instructionCopy.size() == 0) {
 		instructionCopy = unscheduledInstructions;
-		std::cout << "Backup of Instructions created" << std::endl;
+		//std::cout << "Backup of Instructions created" << std::endl;
 	}else {
 		unscheduledInstructions = instructionCopy;
 	}
@@ -96,7 +97,7 @@ void InstructionScheduler::getTimedSchedule(int numW) {
 	// Backup unscheduled Instructions if backup empty
 	if (instructionCopy.size() == 0) {
 		instructionCopy = unscheduledInstructions;
-		std::cout << "Backup of Instructions created" << std::endl;
+		//std::cout << "Backup of Instructions created" << std::endl;
 	}
 	else {
 		unscheduledInstructions = instructionCopy;
@@ -112,15 +113,16 @@ void InstructionScheduler::getTimedSchedule(int numW) {
 		unscheduledInstructions.end());
 
 	// Search for starting point: key = ""
-	std::string key = "";
-	std::string lastTask = "";
+	keyChain = "";
 	
 	while (unscheduledInstructions.size() > 0 || WorkersBusy()) {
 		//std::cout << "DEBUG: unschSize: " << unscheduledInstructions.size() << " and isWorking " << WorkersBusy() << std::endl;
 		// plann tasks
-		lastTask = planTimedInstruction(key);
+		planTimedInstruction();
 	}
-	printTimedSchedule(lastTask);
+
+	printTimedSchedule();
+
 	delete workForce;
 
 }
@@ -144,14 +146,14 @@ void InstructionScheduler::printSchedule() {
 	std::cout << std::endl;
 }
 
-void InstructionScheduler::printTimedSchedule(std::string lastTask) {
+void InstructionScheduler::printTimedSchedule() {
 	std::cout << "Instruction Timed Schedule with " << numWorkers << " workers:\t";
 	for (instrIter it = timedSchedule.begin();
 		it != timedSchedule.end(); ++it) {
 		std::cout << it->getInstruction();
 	}
-	std::cout << lastTask;
 	std::cout << std::endl;
+	std::cout << "All work is finished at: " << currentTime << std::endl;
 }
 
 InstructionScheduler::instrIter InstructionScheduler::planInstruction(instrIter it, std::string& key)
@@ -165,132 +167,104 @@ InstructionScheduler::instrIter InstructionScheduler::planInstruction(instrIter 
 	return it;
 }
 
-std::string InstructionScheduler::planTimedInstruction(std::string& key) {
+void InstructionScheduler::planTimedInstruction() {
 	// - Add key only after having finished the job
 	// - Don't care about timing as long as there is an idling worker
 
-	// 1) Get time when next free worker is available
-	// 2) Check which task(s) have finished by then and add its key to the keychain and the task to the schedule
-	// 2) Check what tasks are now available
-	// 3) Assign first task, if none is available shift time to next task finished
+	// 1) Assign Tasks to all free workers as long there are unlocked tasks and free workers
+	//    - if no free workers:			-> shift time to next job done
+	//    - if no unlocked tasks:		-> shift time to next job done
+	// 2) Check if task(s) have finished
+	//    - if yes: add key(s) to keyChain
+	//    - if no:						-> shift time to next job done
 
-	int timeNextFreeWorker = INT_MAX;
-	std::string lastTask = "";
-	std::vector<Worker>::iterator lastWorkerFinished;
 
 	// 1)
-	int n = 0,idx=0;//DEBUG
-	for (std::vector<Worker>::iterator workerIter = workForce->begin();
-		workerIter != workForce->end(); ++workerIter) {
-		//std::cout << "Worker[" << n << "] is busy("<< workerIter->isBusy() <<") until " << workerIter->isBusyUntil() << std::endl;//DEBUG
-		
-		if (!workerIter->isBusy()) {
-			timeNextFreeWorker = currentTime; // workerIter->isBusyUntil();
-			lastWorkerFinished = workerIter;
-			idx = n;//DEBUG
-			
-		}
-		n++;//DEBUG
-	}
-	//if no last worker assigned -> all are working
-	// find next to be free
-	if (timeNextFreeWorker == INT_MAX) {
-		int timeNextTaskDone = INT_MAX;
-		for (std::vector<Worker>::iterator workerIter = workForce->begin();
-			workerIter != workForce->end(); ++workerIter) {
-			if (timeNextTaskDone > workerIter->isBusyUntil()) {
-				timeNextTaskDone = workerIter->isBusyUntil();
-				lastWorkerFinished = workerIter;
+	int timeNextTaskFinished = INT_MAX;
+	std::vector<Worker>::iterator nextTaskToFinish;
+	std::vector<std::vector<Worker>::iterator> freeWorkers;
+	std::vector<std::vector<Worker>::iterator> finishedTasks;
+	std::vector<InstructionScheduler::instrVec::iterator> unlockedTasks;
+	
+
+	// Get List of free workers
+	//std::cout << "Time: " << currentTime << std::endl;
+	//std::cout << "Workers: ";
+	for (std::vector<Worker>::iterator it = workForce->begin();	 it != workForce->end(); ++it) {
+		//std::cout << it->isBusyUntil() << " ";
+		if (!it->isBusy()) {
+			freeWorkers.push_back(it);
+		}else {
+			if (timeNextTaskFinished > it->isBusyUntil()) {
+				timeNextTaskFinished = it->isBusyUntil();
+				nextTaskToFinish = it;
 			}
 		}
-		currentTime = timeNextTaskDone;
-		lastWorkerFinished->stopWorking();
-		//std::cout << "No task available, shifting time to " << timeNextTaskDone << std::endl;
-	}else {
-		currentTime = timeNextFreeWorker;
 	}
-	
-
-	
-	//std::cout << "Current Time  " << currentTime << std::endl;
-
-	// 2)
-	// add new Key to KeyChain
-	std::string newKey = lastWorkerFinished->currentTask();
-	lastWorkerFinished->taskEnded(); // Basically clear
-	// Add finished task to schedule
-	if (newKey.size() > 0) {
-		//std::cout << "Adding new Key from finished task: " << newKey << std::endl;
-		key += newKey;
-		std::sort(key.begin(), key.end());
-		timedSchedule.push_back(Instruction(newKey));
-	}
-
-
-	// 3) 
-	bool noWorkAssigned = true;
-	for (instrIter it = unscheduledInstructions.begin();
-		it != unscheduledInstructions.end(); ) {
+	//std::cout << std::endl;
+	// Get List of unlocked Tasks
+	//std::cout << "UnschedTasks: ";
+	for (instrIter it = unscheduledInstructions.begin(); it != unscheduledInstructions.end(); ++it) {
 		// Check which tasks are unlocked
-		if (it->isUnlocked(key)) {
-			// task unlocked -> assign
-			lastWorkerFinished->assignTask(it->getInstruction(),it->getProcessTime()+currentTime);
-			//std::cout << "Assinging task " << it->getInstruction() << " with time " << it->getProcessTime() + currentTime << " to worker " << std::endl;
+		if (it->isUnlocked(keyChain)) {
+			unlockedTasks.push_back(it);
+			//std::cout << "U ";
+		}else {
+			//std::cout << "L ";
+		}
+	}
+	//std::cout << std::endl;
+
+	// check if there are no free workers or no unlocked tasks
+	if (freeWorkers.empty() || unlockedTasks.empty()) {
+		// shift to next task to finish
+		//std::cout << "Time Shift from "<< currentTime << " to " << nextTaskToFinish->isBusyUntil() << std::endl;
+		currentTime = nextTaskToFinish->isBusyUntil();
+		// HANDLE FINISHED TASK:
+	}else {
+		// Assign tasks as long as there are free Workers and unlocked tasks
+		for (int i = 0; i < std::min(freeWorkers.size(), unlockedTasks.size()); ++i) {
+			//std::cout << "Assigned " << unlockedTasks[i]->getInstruction();
+			//std::cout << "(" << unlockedTasks[i]->getProcessTime() + currentTime << ")\n";
+			// assign Tasks
+			freeWorkers[i]->assignTask(unlockedTasks[i]->getInstruction(), unlockedTasks[i]->getProcessTime() + currentTime);
 			// remove from unscheduled
-			it = unscheduledInstructions.erase(it);
-			noWorkAssigned = false;
-			break; // to unlock next level of keys to scheduler
+			//printUnscheduled();
+			unscheduledInstructions.erase(unlockedTasks[i]); // this renders iterator invalid
+			break; // since all iterators in unlockedTasks are invalid now: there should be a better way
+			//std::cout << "---" << std::endl;
+			//printUnscheduled();
 		}
-		else {
-			// If nothing has been erased, increment iterator
-			++it;
-		}
+		return;
 	}
 
-	if (noWorkAssigned) {
-		// shift time to next task getting done
-		int timeNextTaskDone = INT_MAX;
-		std::vector<Worker>::iterator nextWorkerToBeFinished;
-		for (std::vector<Worker>::iterator workerIter = workForce->begin();
-			workerIter != workForce->end(); ++workerIter) {
-			if (workerIter->isBusy()) {
-				timeNextTaskDone = workerIter->isBusyUntil();
-				nextWorkerToBeFinished = workerIter;
-				std::cout << "Intermediate Time Next Task Done " << timeNextTaskDone << std::endl;
-			}
+	// 2) Tasks finished
+	// Get list of finished tasks
+	for (std::vector<Worker>::iterator it = workForce->begin(); it != workForce->end(); ++it) {
+		if (it->isBusy() && it->isBusyUntil() == currentTime) {
+			finishedTasks.push_back(it);
 		}
-		currentTime = timeNextTaskDone;
-		std::cout << "Time Next Task Done " << currentTime << std::endl;
-		nextWorkerToBeFinished->stopWorking();
-		lastTask = nextWorkerToBeFinished->currentTask();
-		std::cout << "No task available, shifting time to " << timeNextTaskDone << std::endl;
-		//std::cout << "Next Task " << lastTask << std::endl;
 	}
-	
-
-	/*
-	std::cout << "DEBUG PROGRESS: " << std::endl;
-	std::cout << "----------------" << std::endl;
-	std::cout << "Unscheduled: " << std::endl;
-	printUnscheduled();
-	std::cout << "----------------" << std::endl;
-	std::cout << "Scheduled: " << std::endl;
-	printTimedScheduled();
-	std::cout << "----------------" << std::endl;
-	std::cout << "newKEY: " << key << std::endl;
-	std::cout << "----------------" << std::endl;
-	std::cout << "time: " << currentTime << std::endl;
-	printCurrentWork();
-	std::cout << "----------------" << std::endl << std::endl;
-	*/
-	return lastTask;
+	for (int i = 0; i < finishedTasks.size(); ++i) {
+		// free worker, move task to scheduled, and add key to keyChain
+		std::string newKey = finishedTasks[i]->currentTask();
+		finishedTasks[i]->taskEnded();
+		timedSchedule.push_back(Instruction(newKey));
+		keyChain += newKey;
+		//std::cout << "Adding Key: " << newKey << " -> " << keyChain << std::endl;
+	}
+	std::sort(keyChain.begin(), keyChain.end());
+	if (finishedTasks.empty()) {
+		//std::cout << "No finished Tasks\n";
+	}
+	//std::cout << std::endl << "=================================" << std::endl;
 }
 
 bool InstructionScheduler::WorkersBusy() {
 	bool someonesWorking = false;
 	for (std::vector<Worker>::iterator workerIter = workForce->begin();
 		workerIter != workForce->end(); ++workerIter) {
-		if (currentTime < workerIter->isBusyUntil()) {
+		if (workerIter->isBusy()) {
 			someonesWorking = true;
 		}
 	}

@@ -17,7 +17,7 @@ public:
 	// Typedef
 	typedef std::vector<Instruction>::iterator instrIter;
 	typedef std::vector<Instruction> instrVec;
-	typedef std::vector<Instruction*> ptrInstrVec;
+	//typedef std::vector<Instruction*> ptrInstrVec;
 
 	// Public Methods
 	void addInstruction(std::string a, std::string b); // do a before b
@@ -30,12 +30,12 @@ public:
 private:
 	// Private Methods
 	instrIter planInstruction(instrIter it, std::string& key);
-	std::string planTimedInstruction(std::string& key);
+	void planTimedInstruction();
 	
 	bool WorkersBusy();
 
 	void printSchedule();
-	void printTimedSchedule(std::string lastTask);
+	void printTimedSchedule();
 
 	void printUnscheduled();
 	void printScheduled();
@@ -45,6 +45,7 @@ private:
 	// Private Fields
 	int currentTime;
 	int numWorkers;
+	std::string keyChain;
 	std::vector<Worker>* workForce;
 	instrVec instructionCopy;
 	instrVec unscheduledInstructions;

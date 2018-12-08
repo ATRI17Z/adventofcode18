@@ -13,6 +13,14 @@
 std::string getInputAsString(std::string);
 std::vector<std::string> getInputPerLines(std::string);
 
+/********************************************************
+*  Day 7 Puzzle:
+*  Using an OO approach to have objects for each task
+*  and each worker. To to its morphological creation
+*  the solution is not clean at all but at least it works
+*  at is. Many things should be improved in multiple ways
+*/
+
 int main() {
 
 	std::string str;
@@ -41,8 +49,7 @@ int main() {
 
 	// Schedule Instructions PART TWO
 	std::cout << std::endl << "PART TWO: " << std::endl;
-	//scheduler.getTimedSchedule(1);
-	//std::cout << std::endl;
+	//scheduler.getTimedSchedule(2); // for testData
 	scheduler.getTimedSchedule(5);
 	
 
