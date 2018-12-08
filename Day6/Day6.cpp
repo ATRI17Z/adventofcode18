@@ -4,11 +4,13 @@
 #include <vector>
 #include <climits>
 #include <cmath>
+#include <chrono>
 
 int getDistance(int X, int Y, int x, int y);
 int getSummedDistance(int x, int y, std::vector<int> X, std::vector<int> Y);
 
 int main() {
+	auto start = std::chrono::high_resolution_clock::now();
 
 	std::string line;
 	std::vector<int> X, Y;
@@ -81,6 +83,7 @@ int main() {
 
 	}
 	std::cout << "P1[" << mIdx << "]: " << max << std::endl;
+	auto finishONE = std::chrono::high_resolution_clock::now();
 
 	/* PART 2*/
 	// Brute force
@@ -92,7 +95,11 @@ int main() {
 	}
 
 	std::cout << "P2: " << sumLoc << std::endl;
+	auto finishTWO = std::chrono::high_resolution_clock::now();
 
+	std::chrono::duration<double> elapsedONE = finishONE - start;
+	std::chrono::duration<double> elapsedTWO = finishTWO - finishONE;
+	std::cout << "Elapsed time: P1: " << elapsedONE.count() * 1000 << "ms P2: " << elapsedTWO.count() * 1000 << "ms" << std::endl;
 	return 0;
 }
 
