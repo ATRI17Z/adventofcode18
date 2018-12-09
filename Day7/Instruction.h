@@ -24,8 +24,6 @@ public:
 	bool isInstruction(std::string instruction);
 	void addLock(std::string lockKey);
 	bool isUnlocked(std::string key);
-	
-	// Soley DEBUG purpose, needs to be removed later on or moved to private
 	std::string getLock();
 
 private:

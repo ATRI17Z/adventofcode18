@@ -17,7 +17,6 @@ public:
 	// Typedef
 	typedef std::vector<Instruction>::iterator instrIter;
 	typedef std::vector<Instruction> instrVec;
-	//typedef std::vector<Instruction*> ptrInstrVec;
 
 	// Public Methods
 	void addInstruction(std::string a, std::string b); // do a before b
@@ -36,11 +35,6 @@ private:
 
 	void printSchedule();
 	void printTimedSchedule();
-
-	void printUnscheduled();
-	void printScheduled();
-	void printTimedScheduled();
-	void printCurrentWork();
 
 	// Private Fields
 	int currentTime;

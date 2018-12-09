@@ -7,6 +7,7 @@
 #include <deque>
 #include <algorithm>
 #include <climits>
+#include <chrono>
 
 #include "InstructionScheduler.h"
 
@@ -22,7 +23,7 @@ std::vector<std::string> getInputPerLines(std::string);
 */
 
 int main() {
-
+	auto start = std::chrono::high_resolution_clock::now();
 	std::string str;
 	std::ifstream input;
 	std::vector<std::string> lines;
@@ -46,12 +47,17 @@ int main() {
 	// Schedule Instructions PART ONE
 	std::cout << std::endl << "PART ONE: " << std::endl;
 	scheduler.getSchedule();
-
+	auto finishONE = std::chrono::high_resolution_clock::now();
 	// Schedule Instructions PART TWO
 	std::cout << std::endl << "PART TWO: " << std::endl;
 	//scheduler.getTimedSchedule(2); // for testData
 	scheduler.getTimedSchedule(5);
 	
+	auto finishTWO = std::chrono::high_resolution_clock::now();
+
+	std::chrono::duration<double> elapsedONE = finishONE - start;
+	std::chrono::duration<double> elapsedTWO = finishTWO - finishONE;
+	std::cout << "Elapsed time: P1: " << elapsedONE.count() * 1000 << "ms P2: " << elapsedTWO.count() * 1000 << "ms" << std::endl;
 
 	return 0;
 }

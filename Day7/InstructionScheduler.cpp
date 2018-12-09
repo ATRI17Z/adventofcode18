@@ -66,7 +66,6 @@ void InstructionScheduler::getSchedule() {
 		// find first unlockable instruction
 		for (instrIter it = unscheduledInstructions.begin();
 			it != unscheduledInstructions.end(); ) {
-			//std::cout << "DEBUG: Iteration" << std::endl;
 			if (it->isUnlocked(key)) {
 				it = planInstruction(it, key);
 				break; // to unlock next level of keys to scheduler
@@ -75,20 +74,8 @@ void InstructionScheduler::getSchedule() {
 				++it;
 			}
 		}
-
 		// Sort the new key
 		std::sort(key.begin(), key.end());
-
-		/*
-		std::cout << "DEBUG PROGRESS: " << std::endl;
-		std::cout << "\t Unscheduled: " << std::endl;
-		printUnscheduled();
-		std::cout << "\t Scheduled: " << std::endl;
-		printScheduled();
-		std::cout << "\t newKEY: " << key << std::endl << std::endl;;
-		*/
-
-		
 	}
 	printSchedule();
 }
@@ -116,8 +103,6 @@ void InstructionScheduler::getTimedSchedule(int numW) {
 	keyChain = "";
 	
 	while (unscheduledInstructions.size() > 0 || WorkersBusy()) {
-		//std::cout << "DEBUG: unschSize: " << unscheduledInstructions.size() << " and isWorking " << WorkersBusy() << std::endl;
-		// plann tasks
 		planTimedInstruction();
 	}
 
@@ -129,11 +114,9 @@ void InstructionScheduler::getTimedSchedule(int numW) {
 
 void InstructionScheduler::printInstructions() {
 	for (instrIter it = unscheduledInstructions.begin();
-		 it != unscheduledInstructions.end(); ++it) {
-		
+		 it != unscheduledInstructions.end(); ++it) {	
 		std::cout << "I: " << it->getInstruction() << " with lock ["
 			      << it->getLock() << "]" << std::endl;
-
 	}
 }
 
@@ -232,8 +215,6 @@ void InstructionScheduler::planTimedInstruction() {
 			//printUnscheduled();
 			unscheduledInstructions.erase(unlockedTasks[i]); // this renders iterator invalid
 			break; // since all iterators in unlockedTasks are invalid now: there should be a better way
-			//std::cout << "---" << std::endl;
-			//printUnscheduled();
 		}
 		return;
 	}
@@ -271,45 +252,3 @@ bool InstructionScheduler::WorkersBusy() {
 	return someonesWorking;
 }
 
-
-// DEBUG
-void InstructionScheduler::printUnscheduled() {
-	for (instrIter it = unscheduledInstructions.begin();
-		it != unscheduledInstructions.end(); ++it) {
-		std::cout << "I: " << it->getInstruction() << " with lock ["
-			<< it->getLock() << "]" << std::endl;
-	}
-}
-void InstructionScheduler::printScheduled() {
-	for (instrIter it = schedule.begin();
-		it != schedule.end(); ++it) {
-		std::cout << "I: " << it->getInstruction() << " with lock ["
-			<< it->getLock() << "]" << std::endl;
-	}
-}
-
-void InstructionScheduler::printTimedScheduled() {
-	for (instrIter it = timedSchedule.begin();
-		it != timedSchedule.end(); ++it) {
-		std::cout << "I: " << it->getInstruction() << " with lock ["
-			<< it->getLock() << "]" << std::endl;
-	}
-}
-
-void InstructionScheduler::printCurrentWork() {
-	int n = 0;
-	for (std::vector<Worker>::iterator workerIter = workForce->begin();
-		workerIter != workForce->end(); ++workerIter) {
-		//Woker: n Task: x Until: y
-		std::string task;
-		int until;
-		if (workerIter->isBusy()) {
-			task = workerIter->currentTask();
-			until = workerIter->isBusyUntil();
-		}else {
-			task = ".";
-			until = 0;
-		}
-		std::cout << "Worker: " << n << " Task: " << task << " Until: " << until << std::endl;
-	}
-}

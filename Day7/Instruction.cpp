@@ -8,7 +8,6 @@ Instruction::Instruction(std::string instructionKey, std::string lockKey) {
 	// store first lock key
 	addLock(lockKey);
 	processTime = 60 + instructionKey[0] - 64;
-	//processTime = instructionKey[0] - 64; // for testData
 }
 
 Instruction::Instruction(std::string instructionKey) {
@@ -16,7 +15,6 @@ Instruction::Instruction(std::string instructionKey) {
 	instruction = instructionKey;
 	lockList = "";
 	processTime = 60 + instructionKey[0] - 64;
-	//processTime = instructionKey[0] - 64; // for testData
 }
 
 Instruction::~Instruction() {
@@ -39,11 +37,6 @@ int Instruction::getProcessTime()
 
 bool Instruction::isInstruction(std::string instr)
 {
-	/*
-	std::cout << "DEBUG: Comparing stored instruction " << instruction << " to new instr " << instr 
-		<< " ; Result of compare: " << instruction.compare(instr) << std::endl;
-	*/
-
 	// compare returns 0 if equal:
 	if (instruction.compare(instr) == 0) {
 		return true;
@@ -62,9 +55,11 @@ void Instruction::addLock(std::string lockKey){
 	
 }
 
+
 std::string Instruction::getLock() {
 	return lockList;
 }
+
 
 bool Instruction::isUnlocked(std::string key) {
 	// check if lockList is contained in key
