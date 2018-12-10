@@ -3,13 +3,19 @@
 #include <string>
 #include <vector>
 #include <deque>
+#include <list>
 #include <math.h>
 #include <chrono>
 #include <algorithm>
 
+typedef std::list<int> intList; // 2.7ms, 1.2s
+//typedef std::vector<int> intList; // ??
+//typedef std::deque<int> intList; // 4.7ms 28543.1s
+
 unsigned long long playElvesMarbleGame(const int, const int);
-int playFastElvesMarbleGame(const int, const int);
-size_t getCyclicIndex(size_t, int, size_t);
+intList::iterator getCyclicIterator(intList::iterator&, int, intList&);
+intList::iterator next(intList::iterator&, intList&);
+intList::iterator prev(intList::iterator&, intList&);
 
 //430 players; last marble is worth 71588 points
 int main() {
@@ -24,13 +30,10 @@ int main() {
 	// - mod23 marble is not placed and the one 7 left of the current one is removed -> add score to player,
 	//   the marble right (cw) of the removed one becomes the current marble
 
-	// Modulo of cyclic index test case
-	//std::cout << getCyclicIndex(0, -1, 3) << std::endl;
-	
 	// Test Cases
-	// OLD IMPLEMENTATION
 	score = playElvesMarbleGame(9, 25);
 	std::cout << "Winning Score Test 1: " << score << std::endl;
+	
 	score = playElvesMarbleGame(10, 1618);
 	std::cout << "Winning Score Test 2: " << score << std::endl;
 	score = playElvesMarbleGame(13, 7999);
@@ -41,195 +44,90 @@ int main() {
 	std::cout << "Winning Score Test 5: " << score << std::endl;
 	score = playElvesMarbleGame(30, 5807);
 	std::cout << "Winning Score Test 6: " << score << std::endl;
-
+	
 	score = playElvesMarbleGame(players, last);
+	auto start = std::chrono::high_resolution_clock::now();
 	std::cout << std::endl << "Winning Score Part One: " << score << std::endl;
+	auto finishONE = std::chrono::high_resolution_clock::now();
 
 	score = playElvesMarbleGame(players, last*100);
+	auto finishTWO = std::chrono::high_resolution_clock::now();
 	std::cout << std::endl << "Winning Score Part Two: " << score << std::endl;
+
+	std::chrono::duration<double> elapsedONE = finishONE - start;
+	std::chrono::duration<double> elapsedTWO = finishTWO - finishONE;
+	std::cout << "Elapsed time: P1: " << elapsedONE.count()*1000 << "ms\t P2: " << elapsedTWO.count()*1000 << "ms" << std::endl;
 	
-
-	/*
-	score = playFastElvesMarbleGame(9, 25);
-	std::cout << "Winning Score Test 1: " << score << std::endl;
-	score = playFastElvesMarbleGame(10, 1618);
-	std::cout << "Winning Score Test 2: " << score << std::endl;
-	score = playFastElvesMarbleGame(13, 7999);
-	std::cout << "Winning Score Test 3: " << score << std::endl;
-	score = playFastElvesMarbleGame(17, 1104);
-	std::cout << "Winning Score Test 4: " << score << std::endl;
-	score = playFastElvesMarbleGame(21, 6111);
-	std::cout << "Winning Score Test 5: " << score << std::endl;
-	score = playFastElvesMarbleGame(30, 5807);
-	std::cout << "Winning Score Test 6: " << score << std::endl;
-
-	score = playFastElvesMarbleGame(players, last);
-	std::cout << std::endl << "Winning Score Part One: " << score << std::endl;
-
-	score = playFastElvesMarbleGame(players, last * 100);
-	std::cout << std::endl << "Winning Score Part Two: " << score << std::endl;
-	*/
-	
-}
-
-
-int  playFastElvesMarbleGame(const int players, const int last) {
-	std::vector<int> playerScore(players, 0);
-	std::deque<int> circle;
-	const int divi = 23;
-	const int off = -7;
-	int curP;
-
-	// init
-	circle.push_back(0);
-	curP = 0;
-
-	for (int curM = 1; curM <= last; ++curM) {
-		if (curM%divi == 0) {
-			std::rotate(circle.begin(), circle.end() - 7, circle.end());
-			playerScore[curP] += curM + circle.back();
-			circle.pop_back();
-			std::rotate(circle.begin(), circle.begin() + 1, circle.end());
-		}else {
-			if (circle.size() > 1) {
-				std::rotate(circle.begin(), circle.begin() + 1, circle.end());
-			}
-			circle.push_back(curM);
-		}
-
-		// DEBUG Prints
-		/*
-		std::cout << "[" << divi % players << "] ";
-		for (std::deque<int>::iterator it = circle.begin(); it != circle.end(); ++it) {
-			std::cout << *it << " ";
-		}
-		std::cout << std::endl;
-		*/
-
-		// Assign new player for next round
-		curP = ++curP % players; // player 1 has number 0
-
-	}
-	// Get Max score
-	int maxScore = 0;
-	for (std::vector<int>::iterator it = playerScore.begin(); it != playerScore.end(); ++it) {
-		if (*it > maxScore) {
-			maxScore = *it;
-		}
-	}
-
-	return maxScore;
-
+	return 0;
 }
 
 unsigned long long playElvesMarbleGame(const int players, const int last) {
 	std::vector<unsigned long long> playerScore(players, 0);
-	std::vector<int> circle;
+	intList circle;
+	intList::iterator curMidx;// Index of current marble in vector
 	const int divi = 23;
 	const int off = -7;
 	int curP;	// Current player
-	int curM;	// Current marble
-	size_t curMidx;// Index of current marble in vector
-	size_t newIdx; // tmp Index
-	std::vector<int>::iterator it; // tmp Iterator
 	
-
 	// init
 	circle.push_back(0);
 	curP = 0;	
-	curM = 1;
-	curMidx = 0;
+	curMidx = circle.begin();
 
 	// start game
 	auto start = std::chrono::high_resolution_clock::now();
 	for (int curM = 1; curM <= last; ++curM) {
 		// Check if we have a scoring player
 		if (curM % divi == 0) { // got multiple of divisor divi -> scores are made
-			//std::cout << "Player Scores\n";
-			newIdx = getCyclicIndex(curMidx, off, circle.size());
-			playerScore[curP] += curM + circle[newIdx];
-
-			//DEBUG
-			//std::cout << "P[" << curP << "]="<<playerScore[curP]<<" += " << curM << " + " << circle[newIdx] << " = " << curM + circle[newIdx];
-			//std::cout << " at curMidx = " << curMidx << std::endl;
-
-			it = circle.erase(circle.begin() + newIdx);
-			curMidx = it - circle.begin();
+			curMidx = getCyclicIterator(curMidx, off,circle);
+			playerScore[curP] += curM + *curMidx;
+			curMidx = circle.erase(curMidx);
 		}else {
 			// place marble
-			newIdx = getCyclicIndex(curMidx, 2,  circle.size());
-			if (newIdx == 0) {
-				circle.push_back(curM);
-				curMidx = circle.size()-1;
-			}else {
-				it = circle.insert(circle.begin() + newIdx, curM);
-				curMidx = it - circle.begin();
-			}
+			curMidx = getCyclicIterator(curMidx, 2, circle);
+			curMidx = circle.insert(curMidx, curM);
 		}
-
-		// DEBUG Prints
-		/*
-		std::cout << "[" << curP << "] ";
-		for (std::vector<int>::iterator it = circle.begin(); it != circle.end(); ++it) {
-			if (curMidx == it - circle.begin()) {
-				std::cout << "(" << *it << ") ";
-			}else {
-				std::cout << *it << " ";
-			}
-		}
-		std::cout << std::endl;
-		*/
-
-
-		// Assign new player for next round and get new marble
+		// Assign new player for next round
 		curP = ++curP % players; // player 1 has number 0
-		/*
-		if (curM % 71588 == 0) {
-			auto lapTime = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double> elapsed = lapTime - start;
-			start = lapTime; // reset for relative counter
-			std::cout << ". " << elapsed.count() << "s" << std::endl;;
-		}
-		*/
 	}
 	
-
 	// Get Max score
-	unsigned long long maxScore = 0;
-	for (auto it = playerScore.begin(); it != playerScore.end(); ++it) {
-		if (*it > maxScore) {
-			maxScore = *it;
+	return *std::max_element(playerScore.begin(), playerScore.end());
+}
+
+intList::iterator getCyclicIterator(intList::iterator& curMidx, int off, intList& c) {
+
+	if (off > 0){
+		for (int i = 0; i < off; ++i) {
+			curMidx = next(curMidx, c);
+		}
+	}else {	
+		for (int i = 0; i < -off ; ++i) {
+			curMidx = prev(curMidx, c);
 		}
 	}
-
-	return maxScore;
+	return curMidx;
 }
 
-// returns the index to the new element respecting the size of the vector, as if it
-// were a cyclic buffer
-size_t getCyclicIndex(size_t idx, int off, size_t arrSize) {
-	/*
-	size_t newIdx;
-	if ((int)idx + off < 0) {
-		newIdx = arrSize + (((int)idx + off) % arrSize);
-		std::cout << "New cyclic index from arr[" << arrSize << "] at (" << (int)idx + off << ") -> " << newIdx << std::endl;
-	}else {
-		newIdx = ((int)idx + off) % arrSize;
+intList::iterator next(intList::iterator& curMidx, intList& c) {
+	if (++curMidx == c.end()) {
+		return c.begin();
 	}
-	return newIdx;
-	*/
-
-	bool wasNeg = false;
-	int nidx = (int)idx + off;
-	if (nidx < 0) {
-		wasNeg = true;
-		nidx = -nidx;
+	else {
+		return curMidx;
 	}
-	int offset = nidx % arrSize;
-	return (wasNeg) ? (arrSize - offset) : (offset);
 }
 
-/* NICE SOLUTION POSTED ON REDDIT by willkill07*/
+intList::iterator prev(intList::iterator& curMidx, intList& c) {
+	if (curMidx == c.begin()) {
+		curMidx =  c.end();
+	}
+	return --curMidx;
+}
+
+
+
+/* NICE SOLUTION using lambda's POSTED ON REDDIT by willkill07*/
 /*
 #include <list>
 #include <vector>
