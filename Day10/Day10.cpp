@@ -4,6 +4,7 @@
 #include <regex>
 #include <list>
 #include <climits>
+#include <chrono>
 
 struct Point {
 	int oX; // x Origin
@@ -17,7 +18,7 @@ struct Point {
 void displayPoints(std::list<Point>& P, int maxX, int maxY, int minX, int minY);
 
 int main() {
-
+	
 	std::string line;
 	std::regex regex_num("(-?[0-9]+)");
 	std::list<Point> navPoints;
@@ -59,7 +60,7 @@ int main() {
 		if (minY > navPoint.oY) minY = navPoint.oY;
 	}
 	std::cout << "Input read, start processing..." << std::endl;
-
+	auto start = std::chrono::high_resolution_clock::now();
 	int steps = 0;
 	while (true) {
 		// Show Current Point Locations
@@ -67,6 +68,7 @@ int main() {
 			displayPoints(navPoints, maxX, maxY, minX, minY);
 			std::cout << steps << "s " << std::endl;
 			std::cout << std::endl;
+			break;
 		}
 
 		// Reset min max values
@@ -95,8 +97,9 @@ int main() {
 		*/
 		++steps;
 	}
-
-
+	auto finishONE = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> elapsedONE = finishONE - start;
+	std::cout << "Elapsed time: P1+P2: " << elapsedONE.count() * 1000 << "ms" << std::endl;
 
 	return 0;
 }
