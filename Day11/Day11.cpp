@@ -8,7 +8,6 @@ int getPowerLevel(int x, int y, int sid);
 
 
 // TODO: last grid size not respected
-// TODO: Indices one too low
 int main() {
 
 
@@ -74,14 +73,14 @@ int main() {
 			for (int j = border; j < gridSize-border; ++j) {
 				if (maxP33 < conv[i][j]) {
 					maxP33 = conv[i][j];
-					iX = i - border+1;
-					iY = j - border+1;
+					iX = i - border+2;
+					iY = j - border+2;
 					nS = s;
 
-					if (s % 2) { // odd grid size
-						iX += 1;
-						iY += 1;
-					}
+					//if (s % 2) { // odd grid size
+					//	iX += 1;
+					//	iY += 1;
+					//}
 				}
 			}
 		}
