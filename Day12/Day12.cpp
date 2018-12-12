@@ -14,9 +14,12 @@ int main() {
 
 	std::list<std::string> rules = getInputPerLines("input_Day12.txt");
 	std::string state = getInputAsString("input_Day12init.txt");
+	//std::list<std::string> rules = getInputPerLines("input_Day12_test.txt");
+	//std::string state = getInputAsString("input_Day12init_test.txt");
+
 
 	int ruleSize = 5;
-	//int numGen = 20; // Part 1
+	//unsigned long long numGen = 20; // Part 1
 	unsigned long long numGen = 50000000000; // Part 2
 
 	// Parsing input
@@ -26,14 +29,14 @@ int main() {
 		//std::cout << *it << std::endl;
 		std::string key,value;
 		std::regex_iterator<std::string::iterator> reg_it(it->begin(), it->end(), regexpr);
-		std::cout << reg_it->str() << " -> ";
+		//std::cout << reg_it->str() << " -> ";
 		key = reg_it->str();
 		++reg_it;
 		value = reg_it->str();
-		std::cout << reg_it->str() << std::endl;
+		//std::cout << reg_it->str() << std::endl;
 		rulesMap[key] = value;
 	}
-	std::cout  << std::endl << std::endl << state << std::endl;
+	//std::cout  << std::endl << std::endl << state << std::endl;
 
 	// Pad initial state with four dots (empty Pots)
 	//std::cout << state << std::endl;
@@ -45,25 +48,31 @@ int main() {
 	std::string subStr;
 	std::string newSubState;
 	std::string newState;
-	for (int i = 0; i < numGen ; ++i) {
-		//std::cout << "Generation " << i << ": " << state << std::endl;
-		// check if first two dots are having plants -> need to pad more at beginning
+	for (unsigned long long i = 0; i < numGen ; ++i) {
+		if (!(i % 1000000000)) {
+			std::cout << "Generation: " << i << std::endl;
+		}
+		// check if first four dots are having plants -> need to pad more at beginning
 		if (state.compare(0, 4, "....")) {
-			//std::cout << "\t\t NEED INITIAL PADDING" << std::endl;
-			// Implement only if needed
 			state = "...." + state;
 			firtPotIdx -= 4;
+		}
+		while (!state.compare(0, 5, ".....")) {
+			// remove unneccessary dots in beginning
+			state.erase(0, 1);
+			firtPotIdx += 1;
 		}
 		// check if last two dots are having plants -> need to pad more at end
 		// compare returns '0' if match
 		if (state.compare(state.size()-4, 4, "....")) { // true if not 4 dots are present
-			//std::cout << "\t\t NEED TRAILING PADDING" << std::endl;
-			// Implement only if needed
 			state = state + "....";
+		}
+		while (!state.compare(state.size() - 5, 5, ".....")) {
+			state.erase(state.size() - 1, 1);
 		}
 		// make copy of current state for new state but w/o any plants
 		newState = std::string(state.size(),'.');
-		for (int j = 0; j < state.size()-ruleSize+1; ++j) {
+		for (unsigned long long j = 0; j < state.size()-ruleSize+1; ++j) {
 			subStr = state.substr(j, ruleSize);
 			newSubState = rulesMap[subStr];
 
@@ -84,11 +93,11 @@ int main() {
 	std::cout << "Generation " << numGen << ": " << state << std::endl;
 
 	// Count the number
-	unsigned long long score = 0;
+	long long score = 0;
 	//std::cout << "firstPotIdx: " << firtPotIdx << std::endl;
-	for (int i = 0; i < state.size(); ++i) {
+	for (unsigned long long i = 0; i < state.size(); ++i) {
 		if (state.compare(i, 1, "#") == 0) {
-			//std::cout << "[" << i + firtPotIdx << "] ";
+			std::cout << "[" << i + firtPotIdx << "] ";
 			score += i + firtPotIdx;
 		}
 	}
