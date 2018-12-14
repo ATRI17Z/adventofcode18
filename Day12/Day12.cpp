@@ -11,8 +11,6 @@ std::string getInputAsString(std::string);
 std::list<std::string> getInputPerLines(std::string);
 long long getScore(std::string str, int fPidx);
 
-// TODO Cleanup Part 1 and Part 2
-
 /* First part is straight forward, second part would need
    50'000'000'000 iterations if done the same way as part one.
    This is likely not to be the way to go. First thought was,
