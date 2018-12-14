@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <climits>
 
-#include "instruction.h"
+#include "Instruction.h"
 #include "Worker.h"
 
 class InstructionScheduler
