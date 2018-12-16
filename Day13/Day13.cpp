@@ -113,11 +113,7 @@ int main() {
 		if (carts.size() <= 1) {
 			std::cout << "Only " << carts.size() << " cart left:" << std::endl;
 			for (cartList::iterator it = carts.begin(); it != carts.end(); ++it) {
-				int xCol, yCol;
-				direction dir;
-				intersectionTurn turn;
-				it->getState(xCol, yCol, dir, turn);
-				std::cout << "Cart(" << it->num << ") at [" << xCol << "," << yCol << "] ";
+				std::cout << "Cart(" << it->num << ") at [" << it->getX() << "," << it->getY() << "] ";
 				std::cout << "<- Solution Part 2" << std::endl;
 			}
 			lastManStanding = true;

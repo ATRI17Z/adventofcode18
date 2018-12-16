@@ -118,8 +118,8 @@ bool Cart::moveAuto(charMap& map, std::vector<Cart>& carts) {
 	}
 
 	// move Cart
-	this->xCoord = nX;
-	this->yCoord = nY;
+	this->x = nX;
+	this->y = nY;
 
 	// Check for collision
 	if (collisionOccurred(carts)) {

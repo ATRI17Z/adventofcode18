@@ -23,14 +23,7 @@ typedef std::vector<std::vector<char>> charMap;
 class Cart
 {
 public:
-	Cart(int x, int y, direction dir) {
-		this->xCoord = x;
-		this->yCoord = y;
-		this->moveDir = dir;
-		this->nextTurn = TurnLeft;
-		this->num = counter++; 
-		this->defect = false;
-	};
+	Cart(int x, int y, direction dir): x(x), y(y), moveDir(dir), nextTurn(TurnLeft), num(counter++), defect(false) {}
 	~Cart() {};
 	
 	static int counter;		// bad design ;)
@@ -38,20 +31,20 @@ public:
 	bool defect;			// bad design ;)
 
 	void getState(int& x, int& y, direction& dir, intersectionTurn& lastTurn) {
-		x = this->xCoord;
-		y = this->yCoord;
+		x = this->x;
+		y = this->y;
 		dir = this->moveDir;
 		lastTurn = this->nextTurn;
 	};
 
-	int getX() { return xCoord; }
-	int getY() { return yCoord; }
+	int getX() { return x; }
+	int getY() { return y; }
 
 	bool moveAuto(charMap& map, std::vector<Cart>& carts);
 
 private:
 	
-	int xCoord, yCoord;
+	int x, y;
 	direction moveDir;
 	intersectionTurn nextTurn;
 };
