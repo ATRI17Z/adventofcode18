@@ -7,6 +7,7 @@
 #include <map>
 #include <array>
 #include <algorithm>
+#include <cmath>
 
 #include "Coordinate.h"
 #include "Node.h"
@@ -29,10 +30,12 @@
 
 void removeElementFromList(Node, std::list<Node>&);
 bool listContains(Node, std::list<Node>);
-std::list<Node> getFeasibleChildren(const Node, const Node, const std::vector<std::vector<Coordinate>>&);
+std::list<Node> getFeasibleChildren(Node&, const Node&, const std::vector<std::vector<Coordinate>>&);
 Tool getCommonTool(const Node, const Node, const std::vector<std::vector<Coordinate>>&);
 int getStepCost(const Node, const Node);
-ll estimateFScore(Coordinate*, Coordinate*,const std::vector<std::vector<Coordinate>>&);
+ll estimateHScore(Node&, const Node&, const std::vector<std::vector<Coordinate>>&);
+bool lowestFcost(const Node&, const Node&);
+bool smallerDistance(const Node&, const Node&);
 bool isFeasibleTransition(const Node, const Coordinate&);
 std::string toolStr(Tool);
 std::string typeStr(int);
@@ -41,13 +44,15 @@ std::string typeStr(int);
 void testFeasibleTransition();
 
 void printMap(const std::vector<std::vector<Coordinate>>&, size_t , size_t);
-void printCostMap(std::vector<std::vector<ll>> cost_so_far, const std::vector<std::vector<Coordinate>>&, std::vector<GridLocation>&);
+//void printCostMap(const std::vector<std::vector<Coordinate>>&, std::vector<GridLocation>&);
+//void printCostMap(const std::vector<std::vector<Coordinate>>&, std::vector<Node>&);
 
 int main() {
 
 	// INPUT Day17
+	//depth: 3066
+	//target : 13, 726
 	int depth = 3066;
-	
 	int xTarget = 13;
 	int yTarget = 726;
 	size_t nCols = 26 + 1;
@@ -55,15 +60,15 @@ int main() {
 	Coordinate* target = new Coordinate(xTarget, yTarget,0 );
 
 	// Test Input
-	depth = 510;
-	xTarget = 10;
-	yTarget = 10;
-	nCols = 16+1;
-	nRows = 16+1;
-	target = new Coordinate(10, 10,0);
+	//depth = 510;
+	//xTarget = 10;
+	//yTarget = 10;
+	//nCols = 16+1;
+	//nRows = 16+1;
+	//target = new Coordinate(10, 10,0);
 	target->setIsTarget(true);
 
-	Coordinate* mouth = new Coordinate(0, 0,0);
+	Coordinate* mouth = new Coordinate(0, 0, 0);
 
 	// Map
 	std::vector<std::vector<Coordinate>> map(nCols, std::vector<Coordinate>(nRows, Coordinate(0, 0)));
@@ -104,6 +109,7 @@ int main() {
 	// Show resulting risk (mouth and target have risk 0)
 	std::cout << "P1: Risk: " << risk << std::endl; // solution: 10115
 	
+
 	//////////////////////////////////////////////////////////////////
 	////////////////////////// PART TWO: /////////////////////////////
 	//////////////////////////////////////////////////////////////////
@@ -159,18 +165,14 @@ int main() {
 	/////////////////////////////////////////////////////////////////////////////////////////
 
 	std::list<Node> open, closed, neighbor;
-	std::vector<std::vector<GridLocation>> came_from(nCols, std::vector<GridLocation>(nRows, GridLocation()));
-	std::vector<std::vector<ll>> cost_so_far(nCols, std::vector<ll>(nRows, LLONG_MAX));
-	//std::map<GridLocation, GridLocation> came_from; // Issues with comparator leads to use vector class
-	//std::map<GridLocation, ll> cost_so_far;
+	Node goalNode;
 	Node start(mouth);
-	start.setGcost(0);
-	came_from[start.getLocation().x][start.getLocation().x] = start.getLocation();
-	cost_so_far[start.getLocation().x][start.getLocation().x] = 0;
 	Node goal(target);
+	goal.setNodeProperties(nullptr, LLONG_MAX, 0, torch);
+	start.setNodeProperties(&start, 0, estimateHScore(start, goal, map), torch);
 	Node cur;
 
-	open.push_back(start); // DEBUG, should be start!!!!!!!!!!!! 
+	open.push_back(start);
 
 	//while (open.front() != goal) {
 	while (!open.empty()) {
@@ -182,43 +184,45 @@ int main() {
 		neighbor = getFeasibleChildren(cur, goal, map);
 		for (std::list<Node>::iterator it = neighbor.begin(); it != neighbor.end(); ++it) {
 			// Calculate cost from START to current neighbor node: g(cur)+move2Cost(cur,neighbor)
-			ll neighborCost = cost_so_far[cur.getLocation().x][cur.getLocation().y] + getStepCost(cur, *it);
-			if (listContains(*it, open) && neighborCost < cost_so_far[it->getLocation().x][it->getLocation().y]) {
-				std::cout << "Neighbor[" << it->getLocation().x << "," << it->getLocation().y << "] ist element of OPEN and has smaller cost than before at this Node" << "(" << neighborCost << ")/(" << cost_so_far[it->getLocation().x][it->getLocation().y] << ")" << std::endl;
+			ll neighborCost = cur.getGcost() + getStepCost(cur, *it);
+			//if (neighborCost >= goal.getGcost()) {
+			//	
+			//	continue;
+			//}
+			
+			// Check if new neighbor is already in <OPEN> list and if so if new cost is lower than current one
+			if (listContains(*it, open) && neighborCost < cur.getGcost()) {
 				removeElementFromList(*it, open);
-				std::cout << std::endl;
 			}
-			if (listContains(*it, closed) && neighborCost < cost_so_far[it->getLocation().x][it->getLocation().y]) {
-				std::cout << "Neighbor[" << it->getLocation().x << "," << it->getLocation().y << "] ist element of CLOSED and has smaller cost than before at this Node" << "(" << neighborCost << ")/(" << cost_so_far[it->getLocation().x][it->getLocation().y] << ")" << std::endl;
+
+			// Check if new neighbor is already in <CLOSED> list and if so if new cost is lower than current one
+			if (listContains(*it, closed) && neighborCost < cur.getGcost()) {
 				removeElementFromList(*it, closed);
 			}
+
+			// Check if new neighbor is neither in <CLOSED> nor in <OPEN> list -> add to <OPEN>
 			if (!listContains(*it, open) && !listContains(*it, closed)) {
-				std::cout << "Adding " << "[" << it->getLocation().x << "," << it->getLocation().y << "] " << std::endl;
-				cost_so_far[it->getLocation().x][it->getLocation().y] = neighborCost;
-				it->setGcost(neighborCost);
-				it->setParent(&cur);
-				std::cout << "Added " << "[" << it->getLocation().x << "," << it->getLocation().y << "]: " << it->getGcost() << std::endl;
-				//priority = neighborCost + costToEnd();
+				it->setNodeProperties(&cur, neighborCost, estimateHScore(*it, goal, map),it->getTool());
+				
+				//open.push_front(*it);
 				open.push_back(*it);
-				came_from[it->getLocation().x][it->getLocation().y] = cur.getLocation();
+				if (it->getLocation().x == goal.getLocation().x &&
+					it->getLocation().y == goal.getLocation().y) {
+					// Store goal node for path reconstruction
+					goal = *(it->setNodeProperties(&cur, neighborCost, estimateHScore(*it, goal, map), it->getTool()));
+					std::cout << "Reached Goal Node: " << neighborCost << std::endl;
+				}
+				//it->printNode();
 			}
-			else {
-				std::cout << "Already contained " << "[" << it->getLocation().x << "," << it->getLocation().y << "] " << "(" << neighborCost << ")/(" << cost_so_far[it->getLocation().x][it->getLocation().y] << ")" << std::endl;
-
-			}
-
 		}
-		std::cout << "OPEN: ";
-		for (auto o : open) {
-			std::cout << "[" << o.getLocation().x << "," << o.getLocation().y << "] ";
-		}
-		std::cout << std::endl << "========================================" << std::endl;
+		// Sort according to estimated total cost
+		open.sort(smallerDistance);
 	}
 
 	//testFeasibleTransition();
-	std::cout << "Cost so far of 'Start': " << cost_so_far[start.getLocation().x][start.getLocation().y] << std::endl;
-	std::cout << "Cost of unknown element: " << cost_so_far[cur.getLocation().x][cur.getLocation().y] << std::endl;
-	std::cout << "Cost of goal element: " << cost_so_far[goal.getLocation().x][goal.getLocation().y] << std::endl;
+	std::cout << "Cost so far of 'Start': " << start.getGcost() << std::endl;
+	std::cout << "Cost of unknown element: " << cur.getGcost() << std::endl;
+	std::cout << "Cost of goal element: " << goal.getGcost() << std::endl;
 	
 	
 	// reconstruct path:
@@ -234,31 +238,33 @@ int main() {
 	}
 	std::cout << std::endl;
 	
-	std::vector<GridLocation> optimalPath;
-	GridLocation parent = goal.getLocation();
+	std::vector<Node> optimalPath;
+	Node parent = goal;
+	parent.printNode();
 	optimalPath.push_back(parent);
-	std::cout << "Best path found so far: ";
+	
 	size_t goalX = start.getLocation().x;
 	size_t goalY = start.getLocation().y;
-
-	parent = came_from[7][3];
-	std::cout << "[" << parent.x << "," << parent.y << "]-";
-	parent = came_from[8][3];
-	std::cout << "[" << parent.x << "," << parent.y << "]-";
-
-	//while ((parent.x != goalX) || (parent.y != goalY)) {
-	//	std::cout << "[" << parent.x << "," << parent.y << "]-";
-	//	parent = came_from[parent.x][parent.y];
-	//	optimalPath.push_back(parent);
-	//}
+	
+	std::cout << "Best path found so far (" << optimalPath.size() << "): ";
+	while ((parent.getLocation().x != goalX) || (parent.getLocation().y != goalY)) {
+		std::cout << "[" << parent.getLocation().x << "," << parent.getLocation().y << "]-";
+		if (parent.getParent() == nullptr) { std::cout << " Optimal Path not restoreable" << std::endl; }
+		parent = *parent.getParent();
+		optimalPath.push_back(parent);
+	}
+	
 	std::cout << std::endl;
 	std::cout << "========================================" << std::endl;
-	printCostMap(cost_so_far, map, optimalPath);
+	//printCostMap(map, optimalPath);
 	std::cout << "Exampel Solution" << std::endl;
 	std::cout << "========================================" << std::endl;
-	printCostMap(cost_so_far, map, exampleOptimalPath);
+	//printCostMap(map, exampleOptimalPath);
+	
+	// Part 2: 996 is too high
 
-
+	// free memory
+	delete target, mouth;
 	return 0;
 }
 
@@ -274,19 +280,21 @@ void removeElementFromList(Node cur, std::list<Node>& list) {
 }
 
 // Check if Node cur is element of list open
-bool listContains(Node cur, std::list<Node> open) {
-	std::list<Node>::iterator findIter = std::find(open.begin(), open.end(), cur);
-	if (findIter == open.end()) {
+bool listContains(Node cur, std::list<Node> list) {
+	std::list<Node>::iterator findIter = std::find(list.begin(), list.end(), cur);
+	if (findIter == list.end()) {
+		//std::cout << "Element [" << cur.getLocation().x << "," << cur.getLocation().y << "] NOT found in list" << std::endl;
 		return false;
 	}
 	else {
+		//std::cout << "Element [" << cur.getLocation().x << "," << cur.getLocation().y << "] FOUND in list" << std::endl;
 		return true;
 	}
 }
 
 // Get feasible Children for current Node <cur> in Map <map>
 // TODO: Make sure we don't go backwards (should be ok, by design)
-std::list<Node> getFeasibleChildren(const Node cur, const Node goal, const std::vector<std::vector<Coordinate>>& map) {
+std::list<Node> getFeasibleChildren(Node& cur, const Node& goal, const std::vector<std::vector<Coordinate>>& map) {
 
 	std::list<Node> children;
 	Node child;
@@ -299,32 +307,31 @@ std::list<Node> getFeasibleChildren(const Node cur, const Node goal, const std::
 	int newX, newY;
 	
 	// Check all four direcitions around OPEN
-	std::cout << "New Feasbile Nodes for [" << cur.getLocation().x << "," << cur.getLocation().y << "](t:";
-	std::cout << toolStr(cur.getTool()) << "): ";
+	//std::cout << "New Feasbile Nodes for [" << cur.getLocation().x << "," << cur.getLocation().y << "](t:";
+	//std::cout << toolStr(cur.getTool()) << "): ";
 	for (int i = 0; i < 4; ++i) {
 		newX = (int)cur.getLocation().x + dx[i];
 		newY = (int)cur.getLocation().y + dy[i];
 
 		if (newX >= 0 && newY >= 0) {// not in solid ground
 			if (newX >= nCols || newY >= nRows) { // MAP maybe TOO SMALL
-				std::cout << "MAP IS MAYBE TOO SMALL" << std::endl;
+				//std::cout << "MAP IS MAYBE TOO SMALL";
 				continue;
 			}
 			
 			child = Node(&map[newX][newY]);
 			if (child == goal) {
-				std::cout << "CHILD IS GOAL" << std::endl;
-				child.setTool(torch);
+				//std::cout << "CHILD IS GOAL: ";
+				child.setNodeProperties(&cur, LLONG_MAX, LLONG_MAX, torch);
 			}
 			else {
-				child.setTool(getCommonTool(cur, child, map));
+				child.setNodeProperties(&cur, LLONG_MAX, LLONG_MAX, getCommonTool(cur, child, map));
 			}
-			
 			children.push_back(child);
-			std::cout << "{" << newX << "," << newY << "}(t:" << toolStr(child.getTool()) << ") ";
+			//std::cout << "{" << newX << "," << newY << "}(t:" << toolStr(child.getTool()) << ") ";
 		}
 	}
-	std::cout << std::endl;
+	//std::cout << std::endl;
 
 	return children;
 }
@@ -339,15 +346,15 @@ void testFeasibleTransition() {
 	
 	for (int i = 0; i < 3; ++i) {
 		next.setType(i);			// rock: 0, wet: 1, narrow: 2,
-		cur.setTool(torch);
+		cur.setNodeProperties(nullptr, 0, 0, torch);
 		if (isFeasibleTransition(cur, next)) {
 			std::cout << "Transition to " << typeStr(i) << " with torch is possible" << std::endl;
 		}
-		cur.setTool(climbingGear);
+		cur.setNodeProperties(nullptr, 0, 0, climbingGear);
 		if (isFeasibleTransition(cur, next)) {
 			std::cout << "Transition to " << typeStr(i) << " with climbing gear is possible" << std::endl;
 		}
-		cur.setTool(neither);
+		cur.setNodeProperties(nullptr, 0, 0, neither);
 		if (isFeasibleTransition(cur, next)) {
 			std::cout << "Transition to " << typeStr(i) << " with neither is possible" << std::endl;
 		}
@@ -468,103 +475,21 @@ void printMap(const std::vector<std::vector<Coordinate>>& map,size_t tX, size_t 
 
 }
 
-void printCostMap(std::vector<std::vector<ll>> cost_so_far,
-	              const std::vector<std::vector<Coordinate>>& map,
-				  std::vector<GridLocation>& optiPath)
-{
-	int nCols = (int)map.size();
-	int nRows = (int)map.front().size();
 
-	
-	if (optiPath.empty()) {
-		std::cout << "y\\x:\t";
-		for (int i = 0; i < nCols; ++i) {
-			std::cout << std::setw(3) << i << " ";
-		}
-		std::cout << std::endl;
-		for (int i = 0; i < nRows; ++i) {
-			std::cout << std::setw(3) << i << ":\t";
-			for (int j = 0; j < nCols; ++j) {
-				std::cout << std::setw(3) << cost_so_far[j][i] << " ";
-			}
-			std::cout << std::endl;
-		}
-	}
-	else {
-		std::cout << "y\\x:\t";
-		for (int i = 0; i < nCols; ++i) {
-			std::cout << " " << std::setw(3) << i << "  ";
-		}
-		std::cout << std::endl;
-		for (int i = 0; i < nRows; ++i) {
-			std::cout << std::setw(3) << i << ":\t";
-			for (int j = 0; j < nCols; ++j) {
-				GridLocation pathPoint;
-				pathPoint.x = j; pathPoint.y = i;
-				std::vector<GridLocation>::iterator it = std::find(optiPath.begin(), optiPath.end(), pathPoint);
-				if (it != optiPath.end()) {
-					std::cout << "[" << typeStr(map[j][i].getType())[0] << std::setw(3) << cost_so_far[j][i] << "]" << " ";
-				}
-				else {
-					std::cout  << " " << typeStr(map[j][i].getType())[0] << std::setw(3) << cost_so_far[j][i] << "  ";
-				}
-				
-			}
-			std::cout << std::endl;
-		}
-	}
-	std::cout << "========================================" << std::endl;
-}
-
-/*
-// Estimate some distance from current location <node> to <target>
-ll estimateFScore(Coordinate* node, Coordinate* target, const std::vector<std::vector<Coordinate>>& map) {
-	size_t deltaX = target->getX() - node->getX();
-	size_t deltaY = target->getY() - node->getY();
+// Estimate cost from current location <node> to <target>
+ll estimateHScore(Node& node, const Node& target, const std::vector<std::vector<Coordinate>>& map) {
+	size_t deltaX = target.getLocation().x - node.getLocation().x;
+	size_t deltaY = target.getLocation().y - node.getLocation().y;
 	ll fScore = 0;
-	int xN, yN;
+	
+	// Simple Manhatten Distance so far
+	fScore = std::abs((ll)deltaX) + std::abs((ll)deltaY);
 
-	// Create list of points to visit towards target
-	std::vector<int> x, y;
-	if (deltaX > 0) {
-		for (int i = 0; i <= deltaX; ++i) {
-			x.push_back((int)node->getX() + i);
-			y.push_back((int)node->getY());
-		}
-	}
-	else {
-		for (int i = 0; i > deltaX; --i) {
-			x.push_back((int)node->getX() + i);
-			y.push_back((int)node->getY());
-		}
-	}
-	xN = x.back();
-	yN = y.back();
-	if (deltaY > 0) {
-		for (int i = 0; i <= deltaY; ++i) {
-			x.push_back(xN);
-			y.push_back(yN + i);
-		}
-	}
-	else {
-		for (int i = 0; i > deltaY; --i) {
-			x.push_back(xN);
-			y.push_back(yN + i);
-		}
-	}
-
-	Coordinate cur, next;
-	for (int i = 0; i < x.size()-1; ++i) {
-		cur = map[(size_t)x[i]][(size_t)y[i]];
-		next = map[(size_t)x[(size_t)i + 1]][(size_t)y[(size_t)i + 1]];
-		fScore += getStepCost(&cur, &next);
-		std::cout << "Going from [" << x[(size_t)i] << "," << y[(size_t)i] << "](";
-		std::cout << typeStr(cur.getType()) << "," << toolStr(cur.getTool()) << ") -> [";
-		std::cout << x[(size_t)i + 1] << "," << y[(size_t)i + 1] << "](";
-		std::cout << typeStr(next.getType()) << "," << toolStr(next.getTool()) << ")with total cost ";
-		std::cout << fScore << std::endl;
-	}
 	return fScore;
 }
 
-*/
+bool smallerDistance(const Node& lhs, const Node& rhs) {
+	if (lhs.getGcost() < rhs.getGcost()) return true;
+	else return false;
+}
+

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <iostream>
 #include <climits>
+#include <cmath>
 
 #include "Coordinate.h"
 
@@ -19,24 +21,26 @@ class Node
 {
 public:
 	Node();
-	Node(const Coordinate* c);
-	~Node() {}
+	explicit Node(const Coordinate* c);
+	Node(const Node&); // Copy Constructor
+	Node& operator=(Node); // Assignment operator
+	Node(Node && other); // Move Constructor
+	~Node();
 
 	GridLocation getLocation() const {return this->loc; }
 
 	ll getFcost() const;
 	ll getGcost() const;
+	ll getHcost() const;
 	
-	void setGcost(ll c) { this->gCost = c; }
-
 	Tool getTool() const { return this->tool;};
-	void setTool(Tool t) { this->tool = t; }
+	const Node* getParent() const { return this->parent; }
 
-	void setParent(Node* p) { this->parent = p; }
-	Node getParent() { return *(this->parent); }
+	Node* setNodeProperties(Node* par, ll gC, ll hC, Tool t);
 
-	
+	friend void swap(Node& first, Node& second);
 
+	void printNode();
 
 private:
 	Tool tool;
@@ -44,7 +48,15 @@ private:
 	Node* parent;
 	ll hCost; // Heuristic cost from here to goal
 	ll gCost; // Cost from start to this Node
+
+	ll getDistance(const Node* par);
+	void setParent(Node* p) { this->parent = p; }
+	void setGcost(ll c) { this->gCost = c; }
+	void setHcost(ll h) { this->hCost = h; }
+	void setTool(Tool t) { this->tool = t; }
+
 	
+
 };
 
 
@@ -58,17 +70,6 @@ inline bool operator==(const Node& lhs, const Node& rhs) {
 }
 inline bool operator!=(const Node& lhs, const Node& rhs) { return !(lhs == rhs); }
 
-// Operator definition for Class Type Node (needed by std::map)
-inline bool operator< (const Node& lhs, const Node& rhs) {
-	// returns true if lhs has longer distance
-	if (lhs.getGcost() < rhs.getGcost()) return true;
-	else return false;
-}
-inline bool operator> (const Node& lhs, const Node& rhs) { return rhs < lhs; }
-inline bool operator<=(const Node& lhs, const Node& rhs) { return !(lhs > rhs); }
-inline bool operator>=(const Node& lhs, const Node& rhs) { return !(lhs < rhs); }
-
-
 // Operator definition for GridLocation
 inline bool operator==(const GridLocation& lhs, const GridLocation& rhs) {
 	// return true if lhs and rhs have same distance
@@ -77,25 +78,5 @@ inline bool operator==(const GridLocation& lhs, const GridLocation& rhs) {
 	return false;
 }
 inline bool operator!=(const GridLocation& lhs, const GridLocation& rhs) { return !(lhs == rhs); }
-/*
-// Operator definition for Class Type Node (needed by std::map)
-inline bool operator< (const GridLocation& lhs, const GridLocation& rhs) {
-	// returns true if lhs has longer distance
-	if (lhs.x < rhs.y) { return true; }
-	else if (lhs.x == rhs.x && lhs.y < rhs.y) { return true; }
-	else { return false; }
-}
-inline bool operator> (const GridLocation& lhs, const GridLocation& rhs) { return rhs < lhs; }
-inline bool operator<=(const GridLocation& lhs, const GridLocation& rhs) { return !(lhs > rhs); }
-inline bool operator>=(const GridLocation& lhs, const GridLocation& rhs) { return !(lhs < rhs); }
-*/
-
-/*
 
 
-bool lowestRank(const Node& lhs, const Node& rhs) {
-	if (lhs.getFcost() < rhs.getFcost()) return true;
-	else return false;
-
-}
-*/
