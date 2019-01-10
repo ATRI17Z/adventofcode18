@@ -23,8 +23,6 @@ void printMax(std::map<loc, int>);
 std::string getInputAsString(std::string);
 std::vector<std::string> getSingleWayInstructions(std::string);
 
-
-
 int main() {
 
 	std::vector<std::string> parsedDirections;
@@ -83,8 +81,6 @@ int main() {
 	directions = (input.substr(startPos + 1, endPos - startPos - 1));
 	std::cout << directions << std::endl << std::endl;
 
-	// String Stream for parsing
-	
 	// room = tuple<x,y,dist>
 	int dist, x,y, optionDist=0, optionEDist = 0;
 	room cur,tmp;
@@ -145,12 +141,10 @@ std::list<room> processBranch(std::stringstream& ss, std::list<room> trailHeads,
 	branchStart = trailHeads;
 
 	while (ss.get(c)) {
-		//std::cout << c;
 		for (std::list<room>::iterator it = trailHeads.begin(); it != trailHeads.end(); ++it) {
 			cur = *it; // Get current trail head
 			std::tie(x, y, dist) = cur;
-			//std::cout << c << std::endl;
-
+		
 
 			if (c == 'N' ||
 				c == 'E' ||
@@ -164,15 +158,12 @@ std::list<room> processBranch(std::stringstream& ss, std::list<room> trailHeads,
 					// If this room is not known yet: Add it to rooms map and set cur room to the new one
 					rooms[std::make_tuple(x, y)] = dist;
 					cur = tmp;
-					//std::cout << "New Point for " << c << " at [" << x << "," << y << "] with dist: " << dist << std::endl;
 				}
 				else {
 					// This room has been visited already:
 					//	- if new distance is shorter replace map entry
 					//  - if old distance is shorter keep map entry
 					recurDist = iter->second;
-					//std::cout << "Cyclic Room " << c << " at [" << x << "," << y << "] with dist ";
-					//std::cout << dist << " was at dist " << recurDist << " before" << std::endl;
 					if (recurDist < dist) {
 						// Remove old room entry from list and add new
 						rooms.erase(iter);
@@ -196,9 +187,6 @@ std::list<room> processBranch(std::stringstream& ss, std::list<room> trailHeads,
 			}
 			else if (c == '(') {
 				// start of an optional route
-				//optionStart = cur;
-				//optionSDist = dist;
-				//std::cout << "Option Start" << std::endl;
 				optionStart = true;
 			}
 			else if (c == '|') {
@@ -206,14 +194,12 @@ std::list<room> processBranch(std::stringstream& ss, std::list<room> trailHeads,
 				// save endpoint as new start point for continuation after option
 				branchTails.push_back(cur);
 				// Restart current option
-				//std::cout << "Option Change" << std::endl;
 				branchPoints = branchStart;
 			}
 			else if (c == ')') {
 				// end of an optional route
 				// save endpoint as new start point for continuation after option
 				branchTails.push_back(cur);
-				//std::cout << "Option End" << std::endl;
 				// Use branch tails as current branch points
 				optionEnd = true;
 				
@@ -236,13 +222,6 @@ std::list<room> processBranch(std::stringstream& ss, std::list<room> trailHeads,
 			branchTails.sort(); // TODO: This does not work due to different dist at same room! CHANGE!
 			int xT, yT, distT;
 			int xTprev, yTprev, distTprev;
-
-			/*
-			for (auto& b : branchTails) {
-				std::tie(xT, yT, distT) = b;
-				std::cout << "[" << xT << "," << yT << "](" << distT << ")" << std::endl;
-			}
-			*/
 
 			xTprev = INT_MAX;
 			yTprev = INT_MAX;
@@ -341,7 +320,8 @@ void printMax(std::map<loc, int> rooms) {
 	return;
 }
 
-
+// This function extracts all possible path instructions separating each branch in a new instruction
+// This works in theory but gets way too slow and too memory intensive to use on normal problem size
 std::vector<std::string> getSingleWayInstructions(std::string input) {
 	std::vector<std::string> parsedDirections;
 	std::list<std::string> rawDirections;
