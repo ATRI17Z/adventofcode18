@@ -28,24 +28,21 @@
 
 */
 
-void removeElementFromList(Node, std::list<Node>&);
-bool listContains(Node, std::list<Node>);
-std::list<Node> getFeasibleChildren(Node&, const Node&, const std::vector<std::vector<Coordinate>>&);
-Tool getCommonTool(const Node, const Node, const std::vector<std::vector<Coordinate>>&);
-int getStepCost(const Node, const Node);
+//void removeElementFromList(Node, std::list<Node>&);
+bool listContains(Node, std::list<Node>&);
+std::list<Node> getFeasibleChildren(Node&, std::list<Node>&, std::list<Node>&, const std::vector<std::vector<Coordinate>>&);
+//Tool getCommonTool(const Node, const Node, const std::vector<std::vector<Coordinate>>&);
+//int getStepCost(const Node, const Node);
 ll estimateHScore(Node&, const Node&, const std::vector<std::vector<Coordinate>>&);
-bool lowestFcost(const Node&, const Node&);
+//bool lowestFcost(const Node&, const Node&);
 bool smallerDistance(const Node&, const Node&);
-bool isFeasibleTransition(const Node, const Coordinate&);
+//bool isFeasibleTransition(const Node, const Coordinate&);
+bool isValidTool(Tool, Coordinate);
 std::string toolStr(Tool);
 std::string typeStr(int);
 
-// Test Methods
-void testFeasibleTransition();
 
 void printMap(const std::vector<std::vector<Coordinate>>&, size_t , size_t);
-//void printCostMap(const std::vector<std::vector<Coordinate>>&, std::vector<GridLocation>&);
-//void printCostMap(const std::vector<std::vector<Coordinate>>&, std::vector<Node>&);
 
 int main() {
 
@@ -55,8 +52,8 @@ int main() {
 	int depth = 3066;
 	int xTarget = 13;
 	int yTarget = 726;
-	size_t nCols = 26 + 1;
-	size_t nRows = 1452 + 1;
+	size_t nCols = 1000;
+	size_t nRows = 2000;
 	Coordinate* target = new Coordinate(xTarget, yTarget,0 );
 
 	// Test Input
@@ -104,7 +101,7 @@ int main() {
 		//std::cout << std::endl;
 	}
 	
-	printMap(map, xTarget, yTarget);
+	//printMap(map, xTarget, yTarget);
 
 	// Show resulting risk (mouth and target have risk 0)
 	std::cout << "P1: Risk: " << risk << std::endl; // solution: 10115
@@ -180,40 +177,19 @@ int main() {
 		open.pop_front();		// Remove the lowest rank member from the OPEN list
 		closed.push_back(cur);	// Add the lowest rank member <cur> to CLOSED list
 
+		if (cur.getLocation().x == goal.getLocation().x &&
+			cur.getLocation().y == goal.getLocation().y &&
+			cur.getTool() == torch) {
+			// Store goal node for path reconstruction
+			goal = cur;
+			std::cout << "Reached Goal Node: " << cur.getGcost() << std::endl;
+			break;
+		}
+
 		// Get feasible neibhbors (UP,RIGH,DOWN,LEFT, but not at neg. location and with valid transition)
-		neighbor = getFeasibleChildren(cur, goal, map);
+		neighbor = getFeasibleChildren(cur, open, closed, map);
 		for (std::list<Node>::iterator it = neighbor.begin(); it != neighbor.end(); ++it) {
-			// Calculate cost from START to current neighbor node: g(cur)+move2Cost(cur,neighbor)
-			ll neighborCost = cur.getGcost() + getStepCost(cur, *it);
-			//if (neighborCost >= goal.getGcost()) {
-			//	
-			//	continue;
-			//}
-			
-			// Check if new neighbor is already in <OPEN> list and if so if new cost is lower than current one
-			if (listContains(*it, open) && neighborCost < cur.getGcost()) {
-				removeElementFromList(*it, open);
-			}
-
-			// Check if new neighbor is already in <CLOSED> list and if so if new cost is lower than current one
-			if (listContains(*it, closed) && neighborCost < cur.getGcost()) {
-				removeElementFromList(*it, closed);
-			}
-
-			// Check if new neighbor is neither in <CLOSED> nor in <OPEN> list -> add to <OPEN>
-			if (!listContains(*it, open) && !listContains(*it, closed)) {
-				it->setNodeProperties(&cur, neighborCost, estimateHScore(*it, goal, map),it->getTool());
-				
-				//open.push_front(*it);
-				open.push_back(*it);
-				if (it->getLocation().x == goal.getLocation().x &&
-					it->getLocation().y == goal.getLocation().y) {
-					// Store goal node for path reconstruction
-					goal = *(it->setNodeProperties(&cur, neighborCost, estimateHScore(*it, goal, map), it->getTool()));
-					std::cout << "Reached Goal Node: " << neighborCost << std::endl;
-				}
-				//it->printNode();
-			}
+			open.push_back(*it);
 		}
 		// Sort according to estimated total cost
 		open.sort(smallerDistance);
@@ -221,22 +197,7 @@ int main() {
 
 	//testFeasibleTransition();
 	std::cout << "Cost so far of 'Start': " << start.getGcost() << std::endl;
-	std::cout << "Cost of unknown element: " << cur.getGcost() << std::endl;
 	std::cout << "Cost of goal element: " << goal.getGcost() << std::endl;
-	
-	
-	// reconstruct path:
-	std::vector<GridLocation> exampleOptimalPath;
-	GridLocation newLoc;
-	std::array<size_t,25> xArr = { 10,10,10, 9, 8, 7, 6, 6, 5, 5,5,5,4,4,4,4,4,4,4,4,3,2,1,0,0 };
-	std::array<size_t,25> yArr = { 10,11,12,12,12,12,12,11,11,10,9,8,8,7,6,5,4,3,2,1,1,1,1,1,0 };
-	std::cout << "Example Solution      : ";
-	for (int i = 0; i < xArr.size(); ++i) {
-		newLoc.x = xArr[i]; newLoc.y = yArr[i];
-		exampleOptimalPath.push_back(newLoc);
-		std::cout << "[" << newLoc.x << "," << newLoc.y << "]-";
-	}
-	std::cout << std::endl;
 	
 	std::vector<Node> optimalPath;
 	Node parent = goal;
@@ -254,33 +215,15 @@ int main() {
 		optimalPath.push_back(parent);
 	}
 	
-	std::cout << std::endl;
-	std::cout << "========================================" << std::endl;
-	//printCostMap(map, optimalPath);
-	std::cout << "Exampel Solution" << std::endl;
-	std::cout << "========================================" << std::endl;
-	//printCostMap(map, exampleOptimalPath);
-	
-	// Part 2: 996 is too high
+	// Part 2: 990
 
 	// free memory
 	delete target, mouth;
 	return 0;
 }
 
-// Remove <cur> from list <list>
-void removeElementFromList(Node cur, std::list<Node>& list) {
-	std::list<Node>::iterator findIter = std::find(list.begin(), list.end(), cur);
-	if (findIter != list.end()) {
-		findIter = list.erase(findIter);
-	}
-	else {
-		std::cout << "Could not find [" << cur.getLocation().x << "," << cur.getLocation().y << "] in OPEN for removal!" << std::endl;
-	}
-}
-
 // Check if Node cur is element of list open
-bool listContains(Node cur, std::list<Node> list) {
+bool listContains(Node cur, std::list<Node>& list) {
 	std::list<Node>::iterator findIter = std::find(list.begin(), list.end(), cur);
 	if (findIter == list.end()) {
 		//std::cout << "Element [" << cur.getLocation().x << "," << cur.getLocation().y << "] NOT found in list" << std::endl;
@@ -294,83 +237,52 @@ bool listContains(Node cur, std::list<Node> list) {
 
 // Get feasible Children for current Node <cur> in Map <map>
 // TODO: Make sure we don't go backwards (should be ok, by design)
-std::list<Node> getFeasibleChildren(Node& cur, const Node& goal, const std::vector<std::vector<Coordinate>>& map) {
+std::list<Node> getFeasibleChildren(Node& cur, std::list<Node>& open, std::list<Node>& closed, const std::vector<std::vector<Coordinate>>& map) {
 
 	std::list<Node> children;
 	Node child;
 	int nCols = (int)map.size();
 	int nRows = (int)map.front().size();
+
+	// Get Nodes on same location as cur but with different tool
+	for (int i = 0; i < 3; ++i) {
+		if (isValidTool(Tool(i), map[cur.getLocation().x][cur.getLocation().y]) && cur.getTool() != Tool(i)) {
+			child = Node(&map[cur.getLocation().x][cur.getLocation().y]);
+			child.setNodeProperties(&cur, cur.getGcost() + 7, LLONG_MAX, Tool(i));
+			if (!(listContains(child, open)) && !(listContains(child, closed))) {
+				children.push_back(child);
+				//std::cout << "Added Node [" << cur.getLocation().x << "," << cur.getLocation().y << "] with new Tool " << toolStr(Tool(i)) << std::endl;
+			}
+			
+		}
+	}
 	
 	// travel directions: 0:UP, 1:RIGHT, 2:DOWN, 3:LEFT
 	int dx[] = {  0, 1, 0, -1 };
 	int dy[] = { -1, 0, 1,  0 };
 	int newX, newY;
 	
-	// Check all four direcitions around OPEN
-	//std::cout << "New Feasbile Nodes for [" << cur.getLocation().x << "," << cur.getLocation().y << "](t:";
-	//std::cout << toolStr(cur.getTool()) << "): ";
+	// Check all four direcitions around OPEN wich can be reached with same tool
 	for (int i = 0; i < 4; ++i) {
 		newX = (int)cur.getLocation().x + dx[i];
 		newY = (int)cur.getLocation().y + dy[i];
 
-		if (newX >= 0 && newY >= 0) {// not in solid ground
-			if (newX >= nCols || newY >= nRows) { // MAP maybe TOO SMALL
-				//std::cout << "MAP IS MAYBE TOO SMALL";
-				continue;
+		// not in solid ground or outside map
+		if (!(newX >= 0 && newY >= 0 && newX < nCols && newY < nRows)) { continue; }
+		if (isValidTool(cur.getTool(), map[newX][newY])) {
+			child = Node(&map[newX][newY]);
+			child.setNodeProperties(&cur, cur.getGcost() + 1, LLONG_MAX, cur.getTool());
+			if (!(listContains(child, open)) && !(listContains(child, closed))) {
+				children.push_back(child);
+				//std::cout << "Added new Node [" << newX << "," << newY << "] with Tool " << toolStr(cur.getTool()) << std::endl;
 			}
 			
-			child = Node(&map[newX][newY]);
-			if (child == goal) {
-				//std::cout << "CHILD IS GOAL: ";
-				child.setNodeProperties(&cur, LLONG_MAX, LLONG_MAX, torch);
-			}
-			else {
-				child.setNodeProperties(&cur, LLONG_MAX, LLONG_MAX, getCommonTool(cur, child, map));
-			}
-			children.push_back(child);
-			//std::cout << "{" << newX << "," << newY << "}(t:" << toolStr(child.getTool()) << ") ";
 		}
+
 	}
 	//std::cout << std::endl;
 
 	return children;
-}
-
-// Valid type transitions:
-//		- 0: torch				allows	rocky(0)[.] <-> narrow(2)[|]
-//		- 1: climbing gear		allows	rocky(0)[.] <-> wet(1)[=]
-//		- 2: neither			allows	wet(1)[=]   <-> narrow(2)[|]
-void testFeasibleTransition() {
-	Node cur = Node();
-	Coordinate next;
-	
-	for (int i = 0; i < 3; ++i) {
-		next.setType(i);			// rock: 0, wet: 1, narrow: 2,
-		cur.setNodeProperties(nullptr, 0, 0, torch);
-		if (isFeasibleTransition(cur, next)) {
-			std::cout << "Transition to " << typeStr(i) << " with torch is possible" << std::endl;
-		}
-		cur.setNodeProperties(nullptr, 0, 0, climbingGear);
-		if (isFeasibleTransition(cur, next)) {
-			std::cout << "Transition to " << typeStr(i) << " with climbing gear is possible" << std::endl;
-		}
-		cur.setNodeProperties(nullptr, 0, 0, neither);
-		if (isFeasibleTransition(cur, next)) {
-			std::cout << "Transition to " << typeStr(i) << " with neither is possible" << std::endl;
-		}
-	}
-	
-
-}
-
-bool isFeasibleTransition(const Node cur, const Coordinate& next) {
-	if (cur.getTool() == next.getType() || (cur.getTool() + 2) % 3 == next.getType()) {
-		return true;
-	}
-	else {
-		std::cout << "Cannot enter " << typeStr(next.getType()) << " with " << toolStr(cur.getTool()) << std::endl;
-		return false;
-	}
 }
 
 // Get the tool which is common to the current and next node
@@ -378,47 +290,11 @@ bool isFeasibleTransition(const Node cur, const Coordinate& next) {
 //		- 0: torch				allows	rocky(0)[.] <-> narrow(2)[|]
 //		- 1: climbing gear		allows	rocky(0)[.] <-> wet(1)[=]
 //		- 2: neither			allows	wet(1)[=]   <-> narrow(2)[|]
-Tool getCommonTool(const Node curNode, const Node nextNode, const std::vector<std::vector<Coordinate>>& map) {
-	Coordinate curC = map[curNode.getLocation().x][curNode.getLocation().y];
-	Coordinate nxtC = map[nextNode.getLocation().x][nextNode.getLocation().y];
-	int curType = curC.getType();
-	int nextType = nxtC.getType();
-	if (curType == nextType) return curNode.getTool();
-	else if ((nextType == 0 || nextType == 2) && (curType == 0 || curType == 2)) { return torch; }// torch
-	else if ((nextType == 0 || nextType == 1) && (curType == 0 || curType == 1)) { return climbingGear; }// climbingGear
-	else if ((nextType == 1 || nextType == 2) && (curType == 1 || curType == 2)) { return neither; }// neither
-	else {
-		std::cout << "Sth went wrong with your tools!" << std::endl;
-	}				// Case which should not happen
-	return torch;
-}
-Tool getCommonTool(Tool curT, const  Coordinate curNode, const Coordinate nextNode, const std::vector<std::vector<Coordinate>>& map) {
-	int curType = curNode.getType();
-	int nextType = nextNode.getType();
-	if (curType == nextType) return curT;
-	else if ((nextType == 0 || nextType == 2) && (curType == 0 || curType == 2)) { return torch; }// torch
-	else if ((nextType == 0 || nextType == 1) && (curType == 0 || curType == 1)) { return climbingGear; }// climbingGear
-	else if ((nextType == 1 || nextType == 2) && (curType == 1 || curType == 2)) { return neither; }// neither
-	else {
-		std::cout << "Sth went wrong with your tools!" << std::endl;
-	}				// Case which should not happen
-	return torch;
-}
-
-// Calculate the step distance (time) between two adjacent nodes
-int getStepCost(const Node cur, const Node next) {
-	//		- 0: torch				allows	rocky(0) and narrow(2)
-	//		- 1: climbing gear		allows	rocky(0) and wet(1)
-	//		- 2: neither			allows	wet(1) and narrow(2)
-	//std::cout << "Cost from " << toolStr(cur.getTool()) << " to " << toolStr(next.getTool()) << " is ";
-	if (cur.getTool() == next.getTool()) {
-		//std::cout << "1" << std::endl;
-		return 1;
-	}
-	else {
-		//std::cout << "1+7" << std::endl;
-		return 1 + 7;
-	}
+bool isValidTool(Tool tool, Coordinate curC) {
+	if (curC.getType() == 0 && (tool == 0 || tool == 1)) return true;
+	if (curC.getType() == 1 && (tool == 1 || tool == 2)) return true;
+	if (curC.getType() == 2 && (tool == 2 || tool == 0)) return true;
+	return false;
 }
 
 

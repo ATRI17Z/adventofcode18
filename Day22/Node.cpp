@@ -75,20 +75,9 @@ Node* Node::setNodeProperties(Node * par, ll gC, ll hC, Tool t)
 {
 	// Check if it is a feasible parent
 	if (par == nullptr) {
-		//std::cout << "Parent of [";
-		//std::cout << this->loc.x << "," << this->loc.y << "] is NULL" << std::endl;
 		this->setParent(nullptr);
-	}else if (getDistance(par) != 1) {
-		std::cout << "Location of parent infeasible: [";
-		std::cout << this->loc.x << "," << this->loc.y << "] - [";
-		std::cout << par->getLocation().x << "," << par->getLocation().y << "]" << std::endl;
 	}else{
-		// Set parent Node
-		if (this->getParent() != nullptr) {
-			//std::cout << "Old Parent: [" << this->getParent()->getLocation().x << "," << this->getParent()->getLocation().y << "]" << std::endl;
-		}
 		this->setParent(par);
-		//std::cout << "New Parent: [" << this->getParent()->getLocation().x << "," << this->getParent()->getLocation().y << "]" << std::endl;
 	}
 
 	
