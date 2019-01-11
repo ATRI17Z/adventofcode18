@@ -79,7 +79,7 @@ int main() {
 	endPos = input.find(directionEnd, startPos);
 	
 	directions = (input.substr(startPos + 1, endPos - startPos - 1));
-	std::cout << directions << std::endl << std::endl;
+	//std::cout << directions << std::endl << std::endl;
 
 	// room = tuple<x,y,dist>
 	int dist, x,y, optionDist=0, optionEDist = 0;
@@ -111,7 +111,7 @@ int main() {
 	std::cout << "Max room distance: " << maxD_it->second << std::endl;
 	// Sol Part1: 4239
 
-	printMap(rooms);
+	//printMap(rooms);
 
 	// Find number of rooms with a distance of 1000 and more
 	int roomCount = 0;
