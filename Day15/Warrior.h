@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <iomanip>
 #include <list>
 #include <vector>
 
@@ -70,7 +71,7 @@ public:
 	virtual char getWarriorTag() = 0;
 	virtual char getEnemyTag() = 0;
 	void move(Map& map, std::list<Warrior*> enemy);
-	void attack(Map& map, std::list<Warrior*>& enemy);
+	int attack(Map& map, std::list<Warrior*>& enemy);
 	void attackEnemy( Warrior* enemy);
 	void getAttacked( int damage);
 
@@ -100,6 +101,8 @@ private:
 	std::list<Warrior*> getTargets(Map& map, std::list<Warrior*> enemy);
 	virtual Warrior* getOpponent(std::list<Warrior*> enemy);
 
+	// DEBUG:
+	void printCostMap(const Coordinate& goal, const Map& map, const CostMap& gCost);
 	
 
 };
@@ -109,5 +112,6 @@ int getManhattenDistance(int sX, int sY, int gX, int gY);
 std::list<Coordinate> reconstruct_path(const CostMap& cameFrom, std::list<Coordinate>::iterator cur, Coordinate start);
 bool minLength(const std::list<Coordinate>& first, const std::list<Coordinate>& second);
 bool minPos(const Warrior* first, const Warrior* second);
+bool minPosC(const Coordinate& first, const Coordinate& second);
 
 

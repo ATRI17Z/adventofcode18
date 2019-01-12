@@ -36,6 +36,7 @@ void Warrior::move(Map & map, std::list<Warrior*> enemy)
 		return;
 	}
 	// DEBUG PRINTS
+	/*
 	std::cout << "Reachable for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << "]:\n";
 	for (auto & r : reachable) {
 		for (auto& c : r) {
@@ -43,11 +44,12 @@ void Warrior::move(Map & map, std::list<Warrior*> enemy)
 		}
 		std::cout << std::endl;
 	}
+	*/
 
 	// find the shortest reachable point (ties broken in reading order top2bot, left2right)
 	Coordinate nextP = getNextStep(reachable);
-	std::cout << "Next Step for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << "]: ";
-	std::cout << "[" << nextP.getX() << "," << nextP.getY() << "]" << std::endl;
+	//std::cout << "Next Step for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << "]: ";
+	//std::cout << "[" << nextP.getX() << "," << nextP.getY() << "]" << std::endl;
 
 	// Make Move and update Map
 	setNewPosition(map, nextP);
@@ -56,12 +58,12 @@ void Warrior::move(Map & map, std::list<Warrior*> enemy)
 }
 
 // This function defines which <enemy> will be attackt now
-void Warrior::attack(Map & map, std::list<Warrior*>& enemy)
+int Warrior::attack(Map & map, std::list<Warrior*>& enemy)
 {
 	// IMPLEMENT
 	if (!isAdjacentToEnemy(map)) {
 		//std::cout << "No Enemy next to it" << std::endl;
-		return;
+		return 0;
 	}
 
 	// If there are adjacent enemies, pick the one with the lowest hit points.
@@ -133,10 +135,13 @@ void Warrior::attack(Map & map, std::list<Warrior*>& enemy)
 	attackEnemy(curEnemy);
 
 	// Remove casulaties from battle ground:
+	int returnVal = 0; //0: no casualties, 1: dead elf, 2: dead Goblin
 	for (std::list<Warrior*>::iterator it = enemy.begin(); it != enemy.end(); ) {
 		if ((*it)->isDead()) {
 			// remove from enemy and from map
 			map[(*it)->getX()][(*it)->getY()] = '.';
+			if ((*it)->getWarriorTag() == 'E') { returnVal = 1; }
+			else if ((*it)->getWarriorTag() == 'G') { returnVal = 2; }
 			delete *it;
 			it = enemy.erase(it);
 		}
@@ -147,7 +152,7 @@ void Warrior::attack(Map & map, std::list<Warrior*>& enemy)
 
 
 
-	return;
+	return returnVal;
 }
 
 // Transfer the hitPoints (damage) to the selected enemy
@@ -258,14 +263,20 @@ std::list<std::list<Coordinate>> Warrior::getReachable(const Map & map, std::lis
 
 
 		// init start node
-		gCost[start.getX()][start.getY()] = 0;
-		fCost[start.getX()][start.getY()] = getManhattenDistance(start.getX(), start.getY(), goal.getX(), goal.getY());
+		start.setG(0);
+		start.setF(getManhattenDistance(start.getX(), start.getY(), goal.getX(), goal.getY()));
+		gCost[start.getX()][start.getY()] = start.getG();
+		fCost[start.getX()][start.getY()] = start.getF();
 		openSet.push_back(start);
 
+		std::list<Coordinate>::iterator cur;
 		while (!openSet.empty()) {
-			// get node with lowest fCost -> sort openSet according to gCost
+			// get node with lowest gCost -> sort openSet according to gCost
+			openSet.sort(minPosC);
+			cur = openSet.begin();
+
+			/*
 			int fCost_cur = INT_MAX;
-			std::list<Coordinate>::iterator cur;
 			for (std::list<Coordinate>::iterator at = openSet.begin(); at != openSet.end(); ++at) {
 				if (fCost_cur > fCost[at->getX()][at->getY()]) {
 					fCost_cur = fCost[at->getX()][at->getY()];
@@ -281,6 +292,7 @@ std::list<std::list<Coordinate>> Warrior::getReachable(const Map & map, std::lis
 					}
 				}
 			}
+			*/
 
 			// Check if we are at goal
 			if (*cur == goal) { // THIS DOES NOT WORK SO FAR
@@ -315,7 +327,10 @@ std::list<std::list<Coordinate>> Warrior::getReachable(const Map & map, std::lis
 						if (isInClosedSet) continue;
 
 						// Distance from start to neighbor
-						int tentCost = gCost[(size_t)curX + dx[i]][(size_t)curY + dy[i]] + 1; // Distance to neighbor is always one here
+						//int tentCost = gCost[(size_t)curX + dx[i]][(size_t)curY + dy[i]] + 1; // Distance to neighbor is always one here
+						int tentCost = gCost[(size_t)curX][(size_t)curY] + 1; // Distance to neighbor is always one here
+						neighbor.setG(tentCost);
+						neighbor.setF(tentCost + getManhattenDistance(neighbor.getX(), neighbor.getY(), goal.getX(), goal.getY()));
 
 						// Check if neighbor is in open set, otherwise add
 						bool isNotInOpenSet = true;
@@ -326,7 +341,9 @@ std::list<std::list<Coordinate>> Warrior::getReachable(const Map & map, std::lis
 								break;
 							}
 						}
-						if (isNotInOpenSet) openSet.push_back(neighbor);
+						if (isNotInOpenSet) {
+							openSet.push_back(neighbor);
+						}
 						else if (tentCost >= gCost[(size_t)curX + dx[i]][(size_t)curY + dy[i]]) {
 							continue; 
 						}
@@ -341,8 +358,12 @@ std::list<std::list<Coordinate>> Warrior::getReachable(const Map & map, std::lis
 				}
 			}
 		}
+		// DEBUG: print cost map:
+		//printCostMap(goal, map, gCost);
 	}
-
+	// DEBUG:
+	//std::cin.get();
+	
 	// sort according to length (shortest first):
 	reachable.sort(minLength);
 	return reachable;
@@ -438,6 +459,62 @@ Warrior * Warrior::getOpponent(std::list<Warrior*> enemy)
 	return nullptr;
 }
 
+// DEBUG method to show the cost map for a single path
+void Warrior::printCostMap(const Coordinate & goal, const Map & map, const CostMap & gCost)
+{
+	// Just to display column numbers
+	size_t nCols = map.front().size();
+	size_t nRows = map.size();
+	std::cout << "Cost Map for [" << this->getX() << "," << this->getY() << "] to [";
+	std::cout << goal.getX() << "," << goal.getY() << "]:" << std::endl;
+	std::cout << "   ";
+	for (int i = 0; i < (nCols / 10); ++i) {
+		for (int j = 0; j < 10; ++j) { std::cout << i; }
+	}
+	for (int i = 0; i < (nCols % 10); ++i) {
+		std::cout << (nCols / 10);
+	}
+	std::cout << std::endl << "   ";;
+	for (int i = 0; i < (nCols / 10); ++i) {
+		for (int j = 0; j < 10; ++j) { std::cout << j; }
+	}
+	for (int i = 0; i < (nCols % 10); ++i) {
+		std::cout << i;
+	}
+	std::cout << std::endl << "   ";;
+	for (int i = 0; i < nCols; ++i) {
+		std::cout << "-";
+	}
+	std::cout << std::endl;
+
+
+	int nLine = 0;
+	for (int i = 0; i < nRows; ++i) {
+		std::cout << std::setfill('0') << std::setw(2) << nLine << '|'; // Line Number
+		for (int j = 0; j < nCols; ++j) {
+			// capture start
+			if (this->getX() == j && this->getY() == i) {
+				std::cout << 'S';
+			}
+			//capture goal
+			else if (goal.getX() == j && goal.getY() == i) {
+				std::cout << 'X';
+			}
+			//capture target (todo)
+			//show cost number
+			else if (gCost[j][i] < INT_MAX){// && gCost[j][i] > 0) {
+				std::cout << gCost[j][i];
+			}else{
+				// capture goal
+				// capture target
+				std::cout << map[j][i];
+			}
+		}
+		std::cout << std::endl;
+		++nLine;
+	}
+}
+
 
 int getManhattenDistance(int sX, int sY, int gX, int gY)
 {
@@ -482,4 +559,22 @@ bool minPos(const Warrior * first, const Warrior * second)
 		return true;
 	}
 	return false;
+}
+
+// returns true for smaller cost, if equal cost it returns true if first
+// is first in reading order
+bool minPosC(const Coordinate & first, const Coordinate & second)
+{
+	if (first.getG() < second.getG()) { return true; }
+	else if (first.getG() > second.getG()) { return false; }
+	else {
+		if (first.getY() < second.getY()) {
+			return true;
+		}
+		else if (first.getY() == second.getY() &&
+			first.getX() < second.getX()) {
+			return true;
+		}
+		return false;
+	}
 }

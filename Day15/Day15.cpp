@@ -44,8 +44,8 @@
  */
 
 typedef std::vector<std::vector<char>> charMap;
-typedef std::vector<Elf*> elfsArmy;
-typedef std::vector<Goblin*> goblinArmy;
+//typedef std::vector<Elf*> elfsArmy;
+//typedef std::vector<Goblin*> goblinArmy;
 
 void printMap(const charMap& map);
 std::string getInputAsString(std::string);
@@ -55,14 +55,15 @@ int main() {
 
 	size_t nCols, nRows;
 
-	std::list<std::string> grid = getInputPerLines("input_Day15_test1.txt");
+	std::list<std::string> grid = getInputPerLines("input_Day15.txt");
 	nCols = grid.front().size();
 	nRows = grid.size();
 	std::cout << "Map size is: " << nCols << " x " << nRows << std::endl;
 
 	charMap map(nCols, std::vector<char>(nRows, ' '));
-	elfsArmy elfs;
-	goblinArmy goblins;
+	//elfsArmy elfs;
+	//goblinArmy goblins;
+	int numElfs = 0, numGoblins = 0;
 	std::list<Warrior*> warriors;
 	
 	// Process Map
@@ -79,6 +80,7 @@ int main() {
 				Elf* newElf = new Elf(xPos, yPos, 3, 200, false);
 				//elfs.push_back(newElf);
 				warriors.push_back(newElf);
+				++numElfs;
 				std::cout << "New Elf at " << newElf->getWarriorTag() << ":[" << xPos << "," << yPos << "]" << std::endl;
 			}
 			else if (*at == 'G') {
@@ -88,6 +90,7 @@ int main() {
 				Goblin* newGoblin = new Goblin(xPos, yPos, 3, 200, false);
 				//goblins.push_back(newGoblin);
 				warriors.push_back(newGoblin);
+				++numGoblins;
 				std::cout << "New Goblin at " << newGoblin->getWarriorTag() << ":[" << xPos << "," << yPos << "]" << std::endl;
 			}
 
@@ -100,19 +103,36 @@ int main() {
 
 	bool aliveEnemies = true;
 	int battleRound = 0;
-	std::cout << "Battle Round: " << battleRound << std::endl;
+	int deadWarrior = 0;
+	bool prematureEnd = false;
+	std::cout << "Battle Round: " << battleRound << " with E:" << numElfs << ", G:" << numGoblins << std::endl;
 	printMap(map);
 	while (aliveEnemies) {
 		// Cycle through all warriors (elfs and goblins)
 		// Move and/or attack
 		// Reorder list sucht that moves are in reading order
-
+		prematureEnd = false;
 		for (std::list<Warrior*>::iterator it = warriors.begin(); it != warriors.end(); ++it) {
 			(*it)->move(map, warriors);
-			(*it)->attack(map, warriors);
+			deadWarrior = (*it)->attack(map, warriors);
+			
+			if (deadWarrior == 1) { --numElfs; }
+			else if (deadWarrior == 2) { --numGoblins; }
+			if ((numElfs == 0 || numGoblins == 0) && (*it) != warriors.back()) {
+				prematureEnd = true;
+				break;
+			}
 		}
 
 		// check if there is only one species left in warriors
+		if ((numElfs == 0 || numGoblins == 0)) {
+			//aliveEnemies = false;
+			if (!prematureEnd) { ++battleRound; }
+		}else{
+			//aliveEnemies = true;
+			++battleRound;
+		}
+		
 		aliveEnemies = false;
 		char warTag = (*(warriors.begin()))->getWarriorTag();
 		for (std::list<Warrior*>::iterator it = warriors.begin(); it != warriors.end(); ++it) {
@@ -121,8 +141,9 @@ int main() {
 				break;
 			}
 		}
+		
 
-		std::cout << "Battle Round: " << ++battleRound << std::endl;
+		std::cout << "Battle Round: " << battleRound << " with E:" << numElfs << ", G:" << numGoblins << std::endl;
 		printMap(map);
 		for (std::list<Warrior*>::iterator it = warriors.begin(); it != warriors.end(); ++it) {
 			std::cout << (*it)->getWarriorTag() << ":[" << (*it)->getX() << "," << (*it)->getY() << "]HP(";
@@ -140,13 +161,16 @@ int main() {
 		sumHP += w->getHP();
 	}
 	std::cout << "Solution Part One: " << sumHP * (battleRound) << std::endl;
-	std::cout << "Solution Part One: " << sumHP * (battleRound - (long long int)1) << std::endl;
+	//std::cout << "Solution Part One: " << sumHP * (battleRound - (long long int)1) << std::endl;
+	//235104 was too high
+	//232576 not right
 
 	// Free memory
 	for (auto&& w:warriors) {delete w;}
 
 	return 0;
 }
+
 
 /******************************
 *   INPUT HELPER FUNCTIONS   *
@@ -225,3 +249,4 @@ std::list<std::string> getInputPerLines(std::string fileName) {
 	in.close();
 	return lines;
 }
+
