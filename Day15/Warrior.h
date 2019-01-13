@@ -78,10 +78,6 @@ public:
 protected:
 	Warrior(int x, int y, int hitP, int hp, bool dead, char gOrE) : x(x), y(y), hitP(hitP), hp(hp), dead(false), gORe(gOrE) {}
 	
-
-	
-	
-
 private:
 	int x, y;	// Position
 	int hitP;	// HitPoints

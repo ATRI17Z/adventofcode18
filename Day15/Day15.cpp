@@ -44,8 +44,6 @@
  */
 
 typedef std::vector<std::vector<char>> charMap;
-//typedef std::vector<Elf*> elfsArmy;
-//typedef std::vector<Goblin*> goblinArmy;
 
 void printMap(const charMap& map);
 std::string getInputAsString(std::string);
@@ -61,98 +59,100 @@ int main() {
 	std::cout << "Map size is: " << nCols << " x " << nRows << std::endl;
 
 	charMap map(nCols, std::vector<char>(nRows, ' '));
-	//elfsArmy elfs;
-	//goblinArmy goblins;
 	int numElfs = 0, numGoblins = 0;
 	std::list<Warrior*> warriors;
-	
-	// Process Map
-	int xPos = 0, yPos = 0;
-	for (std::list<std::string>::iterator it = grid.begin(); it != grid.end(); ++it) {
-		// procces each line of the map
-		xPos = 0;
-		for (std::string::iterator at = it->begin(); at != it->end(); ++at) {
-			// fill cmap
-			if (*at == 'E') {
-				// Create a new Elf
-				//Elf newElf(xPos, yPos, 3, 200, false);
-				//std::unique_ptr<Elf> newElf(new Elf(xPos, yPos, 3, 200, false));
-				Elf* newElf = new Elf(xPos, yPos, 3, 200, false);
-				//elfs.push_back(newElf);
-				warriors.push_back(newElf);
-				++numElfs;
-				std::cout << "New Elf at " << newElf->getWarriorTag() << ":[" << xPos << "," << yPos << "]" << std::endl;
-			}
-			else if (*at == 'G') {
-				// Create a new Goblin
-				//Goblin newGoblin(xPos, yPos, 3, 200, false);
-				//std::unique_ptr<Goblin> newGoblin(new Goblin(xPos, yPos, 3, 200, false));
-				Goblin* newGoblin = new Goblin(xPos, yPos, 3, 200, false);
-				//goblins.push_back(newGoblin);
-				warriors.push_back(newGoblin);
-				++numGoblins;
-				std::cout << "New Goblin at " << newGoblin->getWarriorTag() << ":[" << xPos << "," << yPos << "]" << std::endl;
-			}
-
-			map[xPos][yPos] = *at;
-
-			++xPos;
-		}
-		++yPos;
-	}
-
-	bool aliveEnemies = true;
 	int battleRound = 0;
-	int deadWarrior = 0;
-	bool prematureEnd = false;
-	std::cout << "Battle Round: " << battleRound << " with E:" << numElfs << ", G:" << numGoblins << std::endl;
-	printMap(map);
-	while (aliveEnemies) {
-		// Cycle through all warriors (elfs and goblins)
-		// Move and/or attack
-		// Reorder list sucht that moves are in reading order
-		prematureEnd = false;
-		for (std::list<Warrior*>::iterator it = warriors.begin(); it != warriors.end(); ++it) {
-			(*it)->move(map, warriors);
-			deadWarrior = (*it)->attack(map, warriors);
-			
-			if (deadWarrior == 1) { --numElfs; }
-			else if (deadWarrior == 2) { --numGoblins; }
-			if ((numElfs == 0 || numGoblins == 0) && (*it) != warriors.back()) {
-				prematureEnd = true;
-				break;
+	bool elfDied = false;
+
+	for (int elfDmg = 4; ; ++elfDmg) {
+		// reset Elf and Goblin armies
+		std::cout << "Starting combat with Elf's attack power: " << elfDmg << std::endl;
+		for (auto* w : warriors) { delete w; }
+		warriors.clear();
+		map.clear();
+		map = charMap(nCols, std::vector<char>(nRows, ' '));
+		battleRound = 0;
+		numElfs = 0;
+		numGoblins = 0;
+		elfDied = false;
+
+		// Process Map
+		int xPos = 0, yPos = 0;
+		for (std::list<std::string>::iterator it = grid.begin(); it != grid.end(); ++it) {
+			// procces each line of the map
+			xPos = 0;
+			for (std::string::iterator at = it->begin(); at != it->end(); ++at) {
+				// fill cmap
+				if (*at == 'E') {
+					// Create a new Elf
+					Elf* newElf = new Elf(xPos, yPos, elfDmg, 200, false);
+					warriors.push_back(newElf);
+					++numElfs;
+				}
+				else if (*at == 'G') {
+					// Create a new Goblin
+					Goblin* newGoblin = new Goblin(xPos, yPos, 3, 200, false);
+					warriors.push_back(newGoblin);
+					++numGoblins;
+				}
+				map[xPos][yPos] = *at;
+				++xPos;
 			}
+			++yPos;
 		}
 
-		// check if there is only one species left in warriors
-		if ((numElfs == 0 || numGoblins == 0)) {
-			//aliveEnemies = false;
-			if (!prematureEnd) { ++battleRound; }
-		}else{
-			//aliveEnemies = true;
-			++battleRound;
-		}
-		
-		aliveEnemies = false;
-		char warTag = (*(warriors.begin()))->getWarriorTag();
-		for (std::list<Warrior*>::iterator it = warriors.begin(); it != warriors.end(); ++it) {
-			if (warTag != (*it)->getWarriorTag()) {
-				aliveEnemies = true;
-				break;
+	
+
+		bool aliveEnemies = true;
+		int deadWarrior = 0;
+		bool prematureEnd = false;
+		while (aliveEnemies) {
+			// Cycle through all warriors (elfs and goblins)
+			// Move and/or attack
+			// Reorder list sucht that moves are in reading order
+			prematureEnd = false;
+			for (std::list<Warrior*>::iterator it = warriors.begin(); it != warriors.end(); ++it) {
+				(*it)->move(map, warriors);
+				deadWarrior = (*it)->attack(map, warriors);
+
+				if (deadWarrior == 1) { 
+					--numElfs;
+					elfDied = true;
+					break;
+				}
+				else if (deadWarrior == 2) { --numGoblins; }
+				if ((numElfs == 0 || numGoblins == 0) && (*it) != warriors.back()) {
+					prematureEnd = true;
+					break;
+				}
 			}
-		}
-		
 
-		std::cout << "Battle Round: " << battleRound << " with E:" << numElfs << ", G:" << numGoblins << std::endl;
-		printMap(map);
-		for (std::list<Warrior*>::iterator it = warriors.begin(); it != warriors.end(); ++it) {
-			std::cout << (*it)->getWarriorTag() << ":[" << (*it)->getX() << "," << (*it)->getY() << "]HP(";
-			std::cout << (*it)->getHP() << ")" << std::endl;
-		}
-		std::cout << "==============================" << std::endl;
+			if (elfDied) { break; } // nasty way to get out of multiple loops
 
-		// reorder warriors according to their position in reading order
-		warriors.sort(minPos);
+			// check if there is only one species left in warriors
+			if ((numElfs == 0 || numGoblins == 0)) {
+				if (!prematureEnd) { ++battleRound; }
+			}
+			else {
+				++battleRound;
+			}
+
+			aliveEnemies = false;
+			char warTag = (*(warriors.begin()))->getWarriorTag();
+			for (std::list<Warrior*>::iterator it = warriors.begin(); it != warriors.end(); ++it) {
+				if (warTag != (*it)->getWarriorTag()) {
+					aliveEnemies = true;
+					break;
+				}
+			}
+			// reorder warriors according to their position in reading order
+			warriors.sort(minPos);
+		}
+
+		if (!elfDied) { 
+			std::cout << "No Elf died in combat with attack power: " << elfDmg << std::endl;
+			break;
+		}
 	}
 
 	// sum up all remainnig HP points and multiply by battlRounds fought
@@ -160,13 +160,12 @@ int main() {
 	for (auto* w : warriors) {
 		sumHP += w->getHP();
 	}
-	std::cout << "Solution Part One: " << sumHP * (battleRound) << std::endl;
-	//std::cout << "Solution Part One: " << sumHP * (battleRound - (long long int)1) << std::endl;
-	//235104 was too high
-	//232576 not right
+	std::cout << "Solution : " << battleRound << " x " << sumHP << " = " << sumHP * (battleRound) << std::endl;
+	// Solution Part ONE: 229798
+	// Solution Part TWO: 52972 with dmg 19
 
 	// Free memory
-	for (auto&& w:warriors) {delete w;}
+	for (auto* w:warriors) {delete w;}
 
 	return 0;
 }

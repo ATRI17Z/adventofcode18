@@ -8,61 +8,35 @@ void Warrior::move(Map & map, std::list<Warrior*> enemy)
 {
 	// Check if <this> is already adjacent to enemy, if not proceed with move, otherwise go to attack
 	if (isAdjacentToEnemy(map)) { 
-		//std::cout << "Already next to an enemy" << std::endl;
 		return;
 	}
 
 	// Get feasible target points (free but not necessarily reachable)
-	//std::cout << "Feasible for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << "]: ";
 	std::list<Coordinate> feasible = getFeasible(map, enemy);
 	if (feasible.empty()) {
-		//std::cout << "No feasible points for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << std::endl;
-		//std::cout << "=======================================" << std::endl;
 		// do not move
 		return;
 	}
-	// DEBUG PRINTS
-	//for (auto & c : feasible) {
-	//	std::cout << "[" << c.getX() << "," << c.getY() << "] ";
-	//}
-	//std::cout << std::endl;
-
+	
 	// Get Reachable paths
 	std::list<std::list<Coordinate>> reachable = getReachable(map, feasible);
 	if (reachable.empty()) { 
-		//std::cout << "No reachable points for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << std::endl;
-		//std::cout << "=======================================" << std::endl;
 		// do not move
 		return;
 	}
-	// DEBUG PRINTS
-	/*
-	std::cout << "Reachable for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << "]:\n";
-	for (auto & r : reachable) {
-		for (auto& c : r) {
-			std::cout << "[" << c.getX() << "," << c.getY() << "]->";
-		}
-		std::cout << std::endl;
-	}
-	*/
-
+	
 	// find the shortest reachable point (ties broken in reading order top2bot, left2right)
 	Coordinate nextP = getNextStep(reachable);
-	//std::cout << "Next Step for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << "]: ";
-	//std::cout << "[" << nextP.getX() << "," << nextP.getY() << "]" << std::endl;
-
+	
 	// Make Move and update Map
 	setNewPosition(map, nextP);
-
-	//std::cout << "=======================================" << std::endl;
+	return;
 }
 
 // This function defines which <enemy> will be attackt now
 int Warrior::attack(Map & map, std::list<Warrior*>& enemy)
 {
-	// IMPLEMENT
 	if (!isAdjacentToEnemy(map)) {
-		//std::cout << "No Enemy next to it" << std::endl;
 		return 0;
 	}
 
@@ -103,14 +77,7 @@ int Warrior::attack(Map & map, std::list<Warrior*>& enemy)
 			}
 		}
 	}
-
-	// DEBUG
-	//std::cout << "Potential Enemies for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << "]: ";
-	//for (auto* e : potEnemies) {
-	//	std::cout << "[" << e->getX() << "," << e->getY() << "], ";
-	//}
-	//std::cout << std::endl;
-
+	
 	// find all potEnemies with lowest HP and choose the one which is first in reading order
 	// only keep the ones with lowest HP
 	for (std::list<Warrior*>::iterator it = potEnemies.begin(); it != potEnemies.end(); ) {
@@ -123,12 +90,6 @@ int Warrior::attack(Map & map, std::list<Warrior*>& enemy)
 	}
 	// get the first one in reading order
 	potEnemies.sort(minPos);
-	//std::cout << "Best Potential Enemies for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << "]: ";
-	//for (auto *e : potEnemies) {
-	//	std::cout << "[" << e->getX() << "," << e->getY() << "]HP(" << e->getHP() << ") ->";
-	//}
-	//std::cout << std::endl;
-	// In the sorted array the first is the best
 	curEnemy = potEnemies.front();
 
 	// carry out attack
@@ -149,8 +110,6 @@ int Warrior::attack(Map & map, std::list<Warrior*>& enemy)
 			++it;
 		}
 	}
-
-
 
 	return returnVal;
 }
@@ -239,8 +198,6 @@ std::list<std::list<Coordinate>> Warrior::getReachable(const Map & map, std::lis
 	// Start Coordinats
 	Coordinate start(this->x, this->y);
 	
-	//std::cout << "DEBUG: Moving " << this->getWarriorTag() << " at " << this->x << "," << this->y << std::endl;
-
 	// List of results
 	std::list<std::list<Coordinate>> reachable;
 
@@ -275,25 +232,6 @@ std::list<std::list<Coordinate>> Warrior::getReachable(const Map & map, std::lis
 			openSet.sort(minPosC);
 			cur = openSet.begin();
 
-			/*
-			int fCost_cur = INT_MAX;
-			for (std::list<Coordinate>::iterator at = openSet.begin(); at != openSet.end(); ++at) {
-				if (fCost_cur > fCost[at->getX()][at->getY()]) {
-					fCost_cur = fCost[at->getX()][at->getY()];
-					cur = at;
-				}
-				else if (fCost_cur == fCost[at->getX()][at->getY()]) {
-					// we have a tie to break in reading order
-					// Same cost so far for this openset point as another one
-					// pick the one point which is farter north east
-					//std::cout << "DEBUG: [" << at->getX() << "," << at->getY() << "] < [" << cur->getX() << "," << cur->getY() << "]" << std::endl;
-					if (*at < *cur) {
-						cur = at;
-					}
-				}
-			}
-			*/
-
 			// Check if we are at goal
 			if (*cur == goal) { // THIS DOES NOT WORK SO FAR
 				// reconstruct path
@@ -327,7 +265,6 @@ std::list<std::list<Coordinate>> Warrior::getReachable(const Map & map, std::lis
 						if (isInClosedSet) continue;
 
 						// Distance from start to neighbor
-						//int tentCost = gCost[(size_t)curX + dx[i]][(size_t)curY + dy[i]] + 1; // Distance to neighbor is always one here
 						int tentCost = gCost[(size_t)curX][(size_t)curY] + 1; // Distance to neighbor is always one here
 						neighbor.setG(tentCost);
 						neighbor.setF(tentCost + getManhattenDistance(neighbor.getX(), neighbor.getY(), goal.getX(), goal.getY()));
@@ -358,12 +295,7 @@ std::list<std::list<Coordinate>> Warrior::getReachable(const Map & map, std::lis
 				}
 			}
 		}
-		// DEBUG: print cost map:
-		//printCostMap(goal, map, gCost);
 	}
-	// DEBUG:
-	//std::cin.get();
-	
 	// sort according to length (shortest first):
 	reachable.sort(minLength);
 	return reachable;
@@ -386,15 +318,7 @@ Coordinate Warrior::getNextStep(std::list<std::list<Coordinate>> paths)
 			it = paths.erase(it);
 		}
 	}
-	//std::cout << "-------------------------------" << std::endl;
-	//std::cout << "Shortest Path for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << "]:\n";
-	//for (auto & r : paths) {
-	//	for (auto& c : r) {
-	//		std::cout << "[" << c.getX() << "," << c.getY() << "]->";
-	//	}
-	//	std::cout << std::endl;
-	//}
-
+	
 	// If there is more than one path left, choose the one with the target first in reading order
 	bestTarget = Coordinate(INT_MAX, INT_MAX);
 	while (paths.size() > 1) {
@@ -409,25 +333,14 @@ Coordinate Warrior::getNextStep(std::list<std::list<Coordinate>> paths)
 			if (paths.size() == 1) { break; }
 		}
 	}
-	//std::cout << "Best Target for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << "]:\n";
-	//std::cout << "[" << paths.back().back().getX() << "," << paths.back().back().getY() << "]" << std::endl;
-	
 	
 	// get second element of remaining path (first is the current pos of the warrior)
 	std::list<std::list<Coordinate>>::iterator it = paths.begin();
 	std::list<Coordinate> bestPath = *it;
-	//std::cout <<"Best Path for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << "]:\n";
-	//for (auto& c : bestPath) {
-	//	std::cout << "[" << c.getX() << "," << c.getY() << "]->";
-	//}
-	//std::cout << std::endl;
 	startPos = bestPath.front();
 	bestPath.pop_front();
 	nextPos = bestPath.front();
 	
-	//std::cout << "Move for " << this->getWarriorTag() << ":[" << this->getX() << "," << this->getY() << "]: ";
-	//std::cout << "[" << startPos.getX() << "," << startPos.getY() << "]->[" << nextPos.getX() << "," << nextPos.getY() << "]" << std::endl;
-
 	return nextPos;
 }
 
@@ -439,7 +352,6 @@ void Warrior::setNewPosition(Map & map, Coordinate target)
 		std::cout << "ERROR[Warrior::setNewPosition] got a invalid position to set" << std::endl;
 	}
 	map[this->x][this->y] = '.';
-	//map[target.getX()][target.getY()] = this->getWarriorTag();
 	map[target.getX()][target.getY()] = this->getWarriorTag();
 	this->x = target.getX();
 	this->y = target.getY();
